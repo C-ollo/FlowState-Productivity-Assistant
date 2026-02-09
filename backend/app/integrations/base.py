@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from datetime import datetime
+from datetime import datetime, timezone
 from uuid import UUID
 
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -45,4 +45,4 @@ class BaseIntegration(ABC):
         """Check if access token is expired."""
         if not self.connection.token_expires_at:
             return False
-        return datetime.utcnow() >= self.connection.token_expires_at
+        return datetime.now(timezone.utc) >= self.connection.token_expires_at

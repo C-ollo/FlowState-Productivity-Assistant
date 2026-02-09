@@ -207,11 +207,11 @@ async def oauth_callback(
         )
         db.add(connection)
 
-    await db.flush()
+    await db.commit()
 
     # Redirect to frontend
     return RedirectResponse(
-        url=f"{settings.frontend_url}/settings/connections?connected={platform.value}",
+        url=f"{settings.frontend_url}/settings?connected={platform.value}",
         status_code=status.HTTP_302_FOUND,
     )
 
@@ -276,8 +276,11 @@ async def trigger_sync(
     # Perform sync
     try:
         items_synced = await integration.sync(db, user_id)
+        await db.commit()
         return {"status": "success", "items_synced": items_synced}
     except Exception as e:
+        import traceback
+        traceback.print_exc()
         connection.last_error = str(e)
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,

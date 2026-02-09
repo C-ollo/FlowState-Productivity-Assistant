@@ -4,9 +4,10 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 
 const navigation = [
-  { name: "Dashboard", href: "/inbox", icon: "dashboard" },
+  { name: "Dashboard", href: "/", icon: "dashboard" },
+  { name: "Inbox", href: "/inbox", icon: "inbox" },
   { name: "Deadlines", href: "/deadlines", icon: "timer" },
-  { name: "Messages", href: "/messages", icon: "chat_bubble" },
+  { name: "Tasks", href: "/tasks", icon: "check_circle" },
   { name: "Calendar", href: "/calendar", icon: "calendar_today" },
   { name: "Settings", href: "/settings", icon: "settings" },
 ];
@@ -34,7 +35,7 @@ export function Sidebar() {
         <nav className="flex flex-col gap-1">
           {navigation.map((item) => {
             const isActive =
-              pathname === item.href || pathname.startsWith(item.href + "/");
+              item.href === "/" ? pathname === "/" : pathname === item.href || pathname.startsWith(item.href + "/");
             return (
               <Link
                 key={item.name}

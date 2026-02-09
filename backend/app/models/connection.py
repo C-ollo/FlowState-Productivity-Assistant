@@ -43,7 +43,10 @@ class Connection(Base):
     user_id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"), index=True
     )
-    platform: Mapped[Platform] = mapped_column(Enum(Platform), index=True)
+    platform: Mapped[Platform] = mapped_column(
+        Enum(Platform, name="platform", create_type=False, native_enum=True, values_callable=lambda x: [e.value for e in x]),
+        index=True
+    )
 
     # OAuth tokens (encrypted in production)
     access_token: Mapped[str] = mapped_column(Text)
@@ -58,7 +61,8 @@ class Connection(Base):
     external_email: Mapped[str | None] = mapped_column(String(255), nullable=True)
 
     status: Mapped[ConnectionStatus] = mapped_column(
-        Enum(ConnectionStatus), default=ConnectionStatus.ACTIVE
+        Enum(ConnectionStatus, name="connectionstatus", create_type=False, native_enum=True, values_callable=lambda x: [e.value for e in x]),
+        default=ConnectionStatus.ACTIVE
     )
     last_error: Mapped[str | None] = mapped_column(Text, nullable=True)
 

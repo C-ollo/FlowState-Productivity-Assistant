@@ -62,8 +62,13 @@ class Item(Base):
     )
 
     # Source information
-    platform: Mapped[Platform] = mapped_column(Enum(Platform), index=True)
-    item_type: Mapped[ItemType] = mapped_column(Enum(ItemType))
+    platform: Mapped[Platform] = mapped_column(
+        Enum(Platform, name="platform", create_type=False, native_enum=True, values_callable=lambda x: [e.value for e in x]),
+        index=True
+    )
+    item_type: Mapped[ItemType] = mapped_column(
+        Enum(ItemType, name="itemtype", create_type=False, native_enum=True, values_callable=lambda x: [e.value for e in x])
+    )
     external_id: Mapped[str] = mapped_column(String(255), index=True)  # Platform's ID
     thread_id: Mapped[str | None] = mapped_column(String(255), nullable=True, index=True)
 
@@ -94,10 +99,14 @@ class Item(Base):
     ai_summary: Mapped[str | None] = mapped_column(Text, nullable=True)
     action_required: Mapped[bool] = mapped_column(Boolean, default=False)
     action_type: Mapped[ActionType] = mapped_column(
-        Enum(ActionType), default=ActionType.NONE
+        Enum(ActionType, name="actiontype", create_type=False, native_enum=True, values_callable=lambda x: [e.value for e in x]),
+        default=ActionType.NONE
     )
     priority_score: Mapped[int] = mapped_column(Integer, default=50)  # 1-100
-    category: Mapped[Category] = mapped_column(Enum(Category), default=Category.OTHER)
+    category: Mapped[Category] = mapped_column(
+        Enum(Category, name="category", create_type=False, native_enum=True, values_callable=lambda x: [e.value for e in x]),
+        default=Category.OTHER
+    )
     sentiment: Mapped[str | None] = mapped_column(String(50), nullable=True)  # positive/negative/neutral
     ai_confidence: Mapped[float | None] = mapped_column(Float, nullable=True)
     ai_processed_at: Mapped[datetime | None] = mapped_column(

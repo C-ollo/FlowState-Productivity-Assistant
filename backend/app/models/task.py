@@ -58,10 +58,12 @@ class Task(Base):
     description: Mapped[str | None] = mapped_column(Text, nullable=True)
 
     status: Mapped[TaskStatus] = mapped_column(
-        Enum(TaskStatus), default=TaskStatus.TODO, index=True
+        Enum(TaskStatus, name="taskstatus", create_type=False, native_enum=True, values_callable=lambda x: [e.value for e in x]),
+        default=TaskStatus.TODO, index=True
     )
     priority: Mapped[TaskPriority] = mapped_column(
-        Enum(TaskPriority), default=TaskPriority.MEDIUM
+        Enum(TaskPriority, name="taskpriority", create_type=False, native_enum=True, values_callable=lambda x: [e.value for e in x]),
+        default=TaskPriority.MEDIUM
     )
 
     due_at: Mapped[datetime | None] = mapped_column(

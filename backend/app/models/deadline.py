@@ -49,7 +49,8 @@ class Deadline(Base):
     confidence: Mapped[float] = mapped_column(Float, default=1.0)  # 0.0-1.0
 
     status: Mapped[DeadlineStatus] = mapped_column(
-        Enum(DeadlineStatus), default=DeadlineStatus.PENDING, index=True
+        Enum(DeadlineStatus, name="deadlinestatus", create_type=False, native_enum=True, values_callable=lambda x: [e.value for e in x]),
+        default=DeadlineStatus.PENDING, index=True
     )
     completed_at: Mapped[datetime | None] = mapped_column(
         DateTime(timezone=True), nullable=True

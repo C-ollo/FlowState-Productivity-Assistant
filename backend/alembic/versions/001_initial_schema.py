@@ -8,8 +8,6 @@ Create Date: 2024-01-01 00:00:00.000000
 from typing import Sequence, Union
 
 from alembic import op
-import sqlalchemy as sa
-from sqlalchemy.dialects import postgresql
 
 # revision identifiers, used by Alembic.
 revision: str = "001"
@@ -32,164 +30,194 @@ def upgrade() -> None:
     op.execute("CREATE TYPE briefingtype AS ENUM ('daily_morning', 'daily_evening', 'weekly', 'on_demand')")
 
     # Users table
-    op.create_table(
-        "users",
-        sa.Column("id", postgresql.UUID(as_uuid=True), primary_key=True),
-        sa.Column("email", sa.String(255), unique=True, index=True, nullable=False),
-        sa.Column("name", sa.String(255), nullable=False),
-        sa.Column("hashed_password", sa.Text(), nullable=True),
-        sa.Column("timezone", sa.String(50), default="UTC", nullable=False),
-        sa.Column("settings", sa.Text(), nullable=True),
-        sa.Column("created_at", sa.DateTime(timezone=True), server_default=sa.func.now()),
-        sa.Column("updated_at", sa.DateTime(timezone=True), server_default=sa.func.now(), onupdate=sa.func.now()),
-    )
+    op.execute("""
+        CREATE TABLE users (
+            id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+            email VARCHAR(255) UNIQUE NOT NULL,
+            name VARCHAR(255) NOT NULL,
+            hashed_password TEXT,
+            timezone VARCHAR(50) NOT NULL DEFAULT 'UTC',
+            settings TEXT,
+            created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+            updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+        )
+    """)
+    op.execute("CREATE INDEX ix_users_email ON users(email)")
 
     # Connections table
-    op.create_table(
-        "connections",
-        sa.Column("id", postgresql.UUID(as_uuid=True), primary_key=True),
-        sa.Column("user_id", postgresql.UUID(as_uuid=True), sa.ForeignKey("users.id", ondelete="CASCADE"), index=True, nullable=False),
-        sa.Column("platform", sa.Enum("gmail", "slack", "calendar", name="platform", create_type=False), index=True, nullable=False),
-        sa.Column("access_token", sa.Text(), nullable=False),
-        sa.Column("refresh_token", sa.Text(), nullable=True),
-        sa.Column("token_expires_at", sa.DateTime(timezone=True), nullable=True),
-        sa.Column("scopes", sa.Text(), nullable=True),
-        sa.Column("external_user_id", sa.String(255), nullable=True),
-        sa.Column("external_email", sa.String(255), nullable=True),
-        sa.Column("status", sa.Enum("active", "expired", "revoked", "error", name="connectionstatus", create_type=False), default="active", nullable=False),
-        sa.Column("last_error", sa.Text(), nullable=True),
-        sa.Column("created_at", sa.DateTime(timezone=True), server_default=sa.func.now()),
-        sa.Column("updated_at", sa.DateTime(timezone=True), server_default=sa.func.now(), onupdate=sa.func.now()),
-    )
+    op.execute("""
+        CREATE TABLE connections (
+            id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+            user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+            platform platform NOT NULL,
+            access_token TEXT NOT NULL,
+            refresh_token TEXT,
+            token_expires_at TIMESTAMPTZ,
+            scopes TEXT,
+            external_user_id VARCHAR(255),
+            external_email VARCHAR(255),
+            status connectionstatus NOT NULL DEFAULT 'active',
+            last_error TEXT,
+            created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+            updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+        )
+    """)
+    op.execute("CREATE INDEX ix_connections_user_id ON connections(user_id)")
+    op.execute("CREATE INDEX ix_connections_platform ON connections(platform)")
 
     # Items table
-    op.create_table(
-        "items",
-        sa.Column("id", postgresql.UUID(as_uuid=True), primary_key=True),
-        sa.Column("user_id", postgresql.UUID(as_uuid=True), sa.ForeignKey("users.id", ondelete="CASCADE"), index=True, nullable=False),
-        sa.Column("platform", sa.Enum("gmail", "slack", "calendar", name="platform", create_type=False), index=True, nullable=False),
-        sa.Column("item_type", sa.Enum("email", "slack_message", "slack_dm", "calendar_event", "calendar_invite", name="itemtype", create_type=False), nullable=False),
-        sa.Column("external_id", sa.String(255), index=True, nullable=False),
-        sa.Column("thread_id", sa.String(255), index=True, nullable=True),
-        sa.Column("subject", sa.String(500), nullable=True),
-        sa.Column("body", sa.Text(), nullable=True),
-        sa.Column("snippet", sa.String(500), nullable=True),
-        sa.Column("sender_name", sa.String(255), nullable=True),
-        sa.Column("sender_email", sa.String(255), nullable=True),
-        sa.Column("sender_id", sa.String(255), nullable=True),
-        sa.Column("recipients_to", sa.Text(), nullable=True),
-        sa.Column("recipients_cc", sa.Text(), nullable=True),
-        sa.Column("channel_id", sa.String(255), nullable=True),
-        sa.Column("channel_name", sa.String(255), nullable=True),
-        sa.Column("event_start", sa.DateTime(timezone=True), nullable=True),
-        sa.Column("event_end", sa.DateTime(timezone=True), nullable=True),
-        sa.Column("event_location", sa.String(500), nullable=True),
-        sa.Column("ai_summary", sa.Text(), nullable=True),
-        sa.Column("action_required", sa.Boolean(), default=False, nullable=False),
-        sa.Column("action_type", sa.Enum("reply_needed", "review_needed", "meeting_request", "fyi_only", "task_assigned", "none", name="actiontype", create_type=False), default="none", nullable=False),
-        sa.Column("priority_score", sa.Integer(), default=50, nullable=False),
-        sa.Column("category", sa.Enum("work", "personal", "school", "promotional", "social", "finance", "other", name="category", create_type=False), default="other", nullable=False),
-        sa.Column("sentiment", sa.String(50), nullable=True),
-        sa.Column("ai_confidence", sa.Float(), nullable=True),
-        sa.Column("ai_processed_at", sa.DateTime(timezone=True), nullable=True),
-        sa.Column("is_read", sa.Boolean(), default=False, index=True, nullable=False),
-        sa.Column("is_archived", sa.Boolean(), default=False, index=True, nullable=False),
-        sa.Column("is_starred", sa.Boolean(), default=False, nullable=False),
-        sa.Column("is_snoozed", sa.Boolean(), default=False, nullable=False),
-        sa.Column("snoozed_until", sa.DateTime(timezone=True), nullable=True),
-        sa.Column("received_at", sa.DateTime(timezone=True), index=True, nullable=False),
-        sa.Column("created_at", sa.DateTime(timezone=True), server_default=sa.func.now()),
-        sa.Column("updated_at", sa.DateTime(timezone=True), server_default=sa.func.now(), onupdate=sa.func.now()),
-    )
+    op.execute("""
+        CREATE TABLE items (
+            id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+            user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+            platform platform NOT NULL,
+            item_type itemtype NOT NULL,
+            external_id VARCHAR(255) NOT NULL,
+            thread_id VARCHAR(255),
+            subject VARCHAR(500),
+            body TEXT,
+            snippet VARCHAR(500),
+            sender_name VARCHAR(255),
+            sender_email VARCHAR(255),
+            sender_id VARCHAR(255),
+            recipients_to TEXT,
+            recipients_cc TEXT,
+            channel_id VARCHAR(255),
+            channel_name VARCHAR(255),
+            event_start TIMESTAMPTZ,
+            event_end TIMESTAMPTZ,
+            event_location VARCHAR(500),
+            ai_summary TEXT,
+            action_required BOOLEAN NOT NULL DEFAULT FALSE,
+            action_type actiontype NOT NULL DEFAULT 'none',
+            priority_score INTEGER NOT NULL DEFAULT 50,
+            category category NOT NULL DEFAULT 'other',
+            sentiment VARCHAR(50),
+            ai_confidence FLOAT,
+            ai_processed_at TIMESTAMPTZ,
+            is_read BOOLEAN NOT NULL DEFAULT FALSE,
+            is_archived BOOLEAN NOT NULL DEFAULT FALSE,
+            is_starred BOOLEAN NOT NULL DEFAULT FALSE,
+            is_snoozed BOOLEAN NOT NULL DEFAULT FALSE,
+            snoozed_until TIMESTAMPTZ,
+            received_at TIMESTAMPTZ NOT NULL,
+            created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+            updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+        )
+    """)
+    op.execute("CREATE INDEX ix_items_user_id ON items(user_id)")
+    op.execute("CREATE INDEX ix_items_platform ON items(platform)")
+    op.execute("CREATE INDEX ix_items_external_id ON items(external_id)")
+    op.execute("CREATE INDEX ix_items_thread_id ON items(thread_id)")
+    op.execute("CREATE INDEX ix_items_is_read ON items(is_read)")
+    op.execute("CREATE INDEX ix_items_is_archived ON items(is_archived)")
+    op.execute("CREATE INDEX ix_items_received_at ON items(received_at)")
 
     # Deadlines table
-    op.create_table(
-        "deadlines",
-        sa.Column("id", postgresql.UUID(as_uuid=True), primary_key=True),
-        sa.Column("user_id", postgresql.UUID(as_uuid=True), sa.ForeignKey("users.id", ondelete="CASCADE"), index=True, nullable=False),
-        sa.Column("item_id", postgresql.UUID(as_uuid=True), sa.ForeignKey("items.id", ondelete="SET NULL"), nullable=True),
-        sa.Column("title", sa.String(500), nullable=False),
-        sa.Column("description", sa.Text(), nullable=True),
-        sa.Column("due_at", sa.DateTime(timezone=True), index=True, nullable=False),
-        sa.Column("source_text", sa.Text(), nullable=True),
-        sa.Column("confidence", sa.Float(), default=1.0, nullable=False),
-        sa.Column("status", sa.Enum("pending", "completed", "overdue", "cancelled", name="deadlinestatus", create_type=False), default="pending", index=True, nullable=False),
-        sa.Column("completed_at", sa.DateTime(timezone=True), nullable=True),
-        sa.Column("created_at", sa.DateTime(timezone=True), server_default=sa.func.now()),
-        sa.Column("updated_at", sa.DateTime(timezone=True), server_default=sa.func.now(), onupdate=sa.func.now()),
-    )
+    op.execute("""
+        CREATE TABLE deadlines (
+            id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+            user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+            item_id UUID REFERENCES items(id) ON DELETE SET NULL,
+            title VARCHAR(500) NOT NULL,
+            description TEXT,
+            due_at TIMESTAMPTZ NOT NULL,
+            source_text TEXT,
+            confidence FLOAT NOT NULL DEFAULT 1.0,
+            status deadlinestatus NOT NULL DEFAULT 'pending',
+            completed_at TIMESTAMPTZ,
+            created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+            updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+        )
+    """)
+    op.execute("CREATE INDEX ix_deadlines_user_id ON deadlines(user_id)")
+    op.execute("CREATE INDEX ix_deadlines_due_at ON deadlines(due_at)")
+    op.execute("CREATE INDEX ix_deadlines_status ON deadlines(status)")
 
     # Tasks table
-    op.create_table(
-        "tasks",
-        sa.Column("id", postgresql.UUID(as_uuid=True), primary_key=True),
-        sa.Column("user_id", postgresql.UUID(as_uuid=True), sa.ForeignKey("users.id", ondelete="CASCADE"), index=True, nullable=False),
-        sa.Column("item_id", postgresql.UUID(as_uuid=True), sa.ForeignKey("items.id", ondelete="SET NULL"), nullable=True),
-        sa.Column("deadline_id", postgresql.UUID(as_uuid=True), sa.ForeignKey("deadlines.id", ondelete="SET NULL"), nullable=True),
-        sa.Column("title", sa.String(500), nullable=False),
-        sa.Column("description", sa.Text(), nullable=True),
-        sa.Column("status", sa.Enum("todo", "in_progress", "done", "cancelled", name="taskstatus", create_type=False), default="todo", index=True, nullable=False),
-        sa.Column("priority", sa.Enum("low", "medium", "high", "urgent", name="taskpriority", create_type=False), default="medium", nullable=False),
-        sa.Column("due_at", sa.DateTime(timezone=True), index=True, nullable=True),
-        sa.Column("completed_at", sa.DateTime(timezone=True), nullable=True),
-        sa.Column("position", sa.Integer(), default=0, nullable=False),
-        sa.Column("ai_generated", sa.Boolean(), default=False, nullable=False),
-        sa.Column("created_at", sa.DateTime(timezone=True), server_default=sa.func.now()),
-        sa.Column("updated_at", sa.DateTime(timezone=True), server_default=sa.func.now(), onupdate=sa.func.now()),
-    )
+    op.execute("""
+        CREATE TABLE tasks (
+            id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+            user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+            item_id UUID REFERENCES items(id) ON DELETE SET NULL,
+            deadline_id UUID REFERENCES deadlines(id) ON DELETE SET NULL,
+            title VARCHAR(500) NOT NULL,
+            description TEXT,
+            status taskstatus NOT NULL DEFAULT 'todo',
+            priority taskpriority NOT NULL DEFAULT 'medium',
+            due_at TIMESTAMPTZ,
+            completed_at TIMESTAMPTZ,
+            position INTEGER NOT NULL DEFAULT 0,
+            ai_generated BOOLEAN NOT NULL DEFAULT FALSE,
+            created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+            updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+        )
+    """)
+    op.execute("CREATE INDEX ix_tasks_user_id ON tasks(user_id)")
+    op.execute("CREATE INDEX ix_tasks_status ON tasks(status)")
+    op.execute("CREATE INDEX ix_tasks_due_at ON tasks(due_at)")
 
     # Reminders table
-    op.create_table(
-        "reminders",
-        sa.Column("id", postgresql.UUID(as_uuid=True), primary_key=True),
-        sa.Column("user_id", postgresql.UUID(as_uuid=True), sa.ForeignKey("users.id", ondelete="CASCADE"), index=True, nullable=False),
-        sa.Column("task_id", postgresql.UUID(as_uuid=True), sa.ForeignKey("tasks.id", ondelete="CASCADE"), nullable=True),
-        sa.Column("deadline_id", postgresql.UUID(as_uuid=True), sa.ForeignKey("deadlines.id", ondelete="CASCADE"), nullable=True),
-        sa.Column("remind_at", sa.DateTime(timezone=True), index=True, nullable=False),
-        sa.Column("channel", sa.Enum("in_app", "email", "push", name="reminderchannel", create_type=False), default="in_app", nullable=False),
-        sa.Column("message", sa.String(500), nullable=True),
-        sa.Column("sent", sa.Boolean(), default=False, index=True, nullable=False),
-        sa.Column("sent_at", sa.DateTime(timezone=True), nullable=True),
-        sa.Column("created_at", sa.DateTime(timezone=True), server_default=sa.func.now()),
-    )
+    op.execute("""
+        CREATE TABLE reminders (
+            id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+            user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+            task_id UUID REFERENCES tasks(id) ON DELETE CASCADE,
+            deadline_id UUID REFERENCES deadlines(id) ON DELETE CASCADE,
+            remind_at TIMESTAMPTZ NOT NULL,
+            channel reminderchannel NOT NULL DEFAULT 'in_app',
+            message VARCHAR(500),
+            sent BOOLEAN NOT NULL DEFAULT FALSE,
+            sent_at TIMESTAMPTZ,
+            created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+        )
+    """)
+    op.execute("CREATE INDEX ix_reminders_user_id ON reminders(user_id)")
+    op.execute("CREATE INDEX ix_reminders_remind_at ON reminders(remind_at)")
+    op.execute("CREATE INDEX ix_reminders_sent ON reminders(sent)")
 
     # Briefings table
-    op.create_table(
-        "briefings",
-        sa.Column("id", postgresql.UUID(as_uuid=True), primary_key=True),
-        sa.Column("user_id", postgresql.UUID(as_uuid=True), sa.ForeignKey("users.id", ondelete="CASCADE"), index=True, nullable=False),
-        sa.Column("briefing_date", sa.Date(), index=True, nullable=False),
-        sa.Column("briefing_type", sa.Enum("daily_morning", "daily_evening", "weekly", "on_demand", name="briefingtype", create_type=False), default="daily_morning", nullable=False),
-        sa.Column("content", sa.Text(), nullable=False),
-        sa.Column("data_snapshot", sa.Text(), nullable=True),
-        sa.Column("generated_at", sa.DateTime(timezone=True), server_default=sa.func.now()),
-    )
+    op.execute("""
+        CREATE TABLE briefings (
+            id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+            user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+            briefing_date DATE NOT NULL,
+            briefing_type briefingtype NOT NULL DEFAULT 'daily_morning',
+            content TEXT NOT NULL,
+            data_snapshot TEXT,
+            generated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+        )
+    """)
+    op.execute("CREATE INDEX ix_briefings_user_id ON briefings(user_id)")
+    op.execute("CREATE INDEX ix_briefings_briefing_date ON briefings(briefing_date)")
 
     # Sync states table
-    op.create_table(
-        "sync_states",
-        sa.Column("id", postgresql.UUID(as_uuid=True), primary_key=True),
-        sa.Column("connection_id", postgresql.UUID(as_uuid=True), sa.ForeignKey("connections.id", ondelete="CASCADE"), index=True, nullable=False),
-        sa.Column("sync_token", sa.String(500), nullable=True),
-        sa.Column("sync_metadata", sa.Text(), nullable=True),
-        sa.Column("last_sync_at", sa.DateTime(timezone=True), nullable=True),
-        sa.Column("last_sync_status", sa.String(50), nullable=True),
-        sa.Column("last_sync_error", sa.Text(), nullable=True),
-        sa.Column("items_synced", sa.Integer(), default=0, nullable=False),
-        sa.Column("created_at", sa.DateTime(timezone=True), server_default=sa.func.now()),
-        sa.Column("updated_at", sa.DateTime(timezone=True), server_default=sa.func.now(), onupdate=sa.func.now()),
-    )
+    op.execute("""
+        CREATE TABLE sync_states (
+            id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+            connection_id UUID NOT NULL REFERENCES connections(id) ON DELETE CASCADE,
+            sync_token VARCHAR(500),
+            sync_metadata TEXT,
+            last_sync_at TIMESTAMPTZ,
+            last_sync_status VARCHAR(50),
+            last_sync_error TEXT,
+            items_synced INTEGER NOT NULL DEFAULT 0,
+            created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+            updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+        )
+    """)
+    op.execute("CREATE INDEX ix_sync_states_connection_id ON sync_states(connection_id)")
 
 
 def downgrade() -> None:
-    op.drop_table("sync_states")
-    op.drop_table("briefings")
-    op.drop_table("reminders")
-    op.drop_table("tasks")
-    op.drop_table("deadlines")
-    op.drop_table("items")
-    op.drop_table("connections")
-    op.drop_table("users")
+    op.execute("DROP TABLE IF EXISTS sync_states CASCADE")
+    op.execute("DROP TABLE IF EXISTS briefings CASCADE")
+    op.execute("DROP TABLE IF EXISTS reminders CASCADE")
+    op.execute("DROP TABLE IF EXISTS tasks CASCADE")
+    op.execute("DROP TABLE IF EXISTS deadlines CASCADE")
+    op.execute("DROP TABLE IF EXISTS items CASCADE")
+    op.execute("DROP TABLE IF EXISTS connections CASCADE")
+    op.execute("DROP TABLE IF EXISTS users CASCADE")
 
     op.execute("DROP TYPE IF EXISTS briefingtype")
     op.execute("DROP TYPE IF EXISTS reminderchannel")

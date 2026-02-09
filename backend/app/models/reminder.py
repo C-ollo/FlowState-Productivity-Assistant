@@ -45,7 +45,8 @@ class Reminder(Base):
 
     remind_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), index=True)
     channel: Mapped[ReminderChannel] = mapped_column(
-        Enum(ReminderChannel), default=ReminderChannel.IN_APP
+        Enum(ReminderChannel, name="reminderchannel", create_type=False, native_enum=True, values_callable=lambda x: [e.value for e in x]),
+        default=ReminderChannel.IN_APP
     )
 
     message: Mapped[str | None] = mapped_column(String(500), nullable=True)

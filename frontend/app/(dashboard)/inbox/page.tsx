@@ -1,86 +1,69 @@
 "use client";
 
 import { useState } from "react";
+import { useInboxItems, useInboxStats } from "@/hooks/use-items";
+import { useUser } from "@/hooks/use-auth";
+import { Item } from "@/types";
 
-const sourceFilters = ["All Sources", "Gmail", "Slack"];
+const sourceFilters = ["All Sources", "Gmail", "Slack", "Calendar"];
 
-const briefingCards = [
-  {
-    title: "Today's Priorities",
-    value: "3 Tasks",
-    valueColor: "text-white",
-    tags: ["Budget Approval", "Q1 Roadmap"],
-  },
-  {
-    title: "Slack Threads",
-    value: "2 Urgent",
-    valueColor: "text-amber-400",
-    subtitle: "Require your immediate input",
-  },
-  {
-    title: "Next Meeting",
-    value: "In 24 mins",
-    valueColor: "text-white",
-    subtitle: "Design Sync w/ Platform Team",
-  },
-];
+function getTimeAgo(date: string): string {
+  const now = new Date();
+  const received = new Date(date);
+  const diffMs = now.getTime() - received.getTime();
+  const diffMins = Math.floor(diffMs / 60000);
+  const diffHours = Math.floor(diffMins / 60);
+  const diffDays = Math.floor(diffHours / 24);
 
-const feedItems = [
-  {
-    id: 1,
-    platform: "slack",
-    icon: "alternate_email",
-    iconColor: "text-slack",
-    iconBg: "bg-[#E01E5A]/10",
-    title: "#product-design-system",
-    badge: "HIGH PRIORITY",
-    badgeColor: "bg-red-500/10 text-red-400",
-    summary:
-      "Sarah shared the final V2 components. Needs approval for the typography tokens by EOD to keep developer handoff on schedule.",
-    time: "2m ago",
-  },
-  {
-    id: 2,
-    platform: "gmail",
-    icon: "mail",
-    iconColor: "text-gmail",
-    iconBg: "bg-[#EA4335]/10",
-    title: "Marcus Miller",
-    badge: "READ LATER",
-    badgeColor: "bg-primary/10 text-primary",
-    summary:
-      "Monthly budget review for October. No major discrepancies found, but Marcus noted a 5% increase in AWS costs.",
-    time: "14m ago",
-  },
-  {
-    id: 3,
-    platform: "slack",
-    icon: "alternate_email",
-    iconColor: "text-slack",
-    iconBg: "bg-[#E01E5A]/10",
-    title: "Direct: Jordan Lee",
-    badge: null,
-    summary:
-      "Jordan is asking if you have time for a quick 5-min huddle about the investor deck before the board meeting.",
-    time: "45m ago",
-  },
-  {
-    id: 4,
-    platform: "gmail",
-    icon: "mail",
-    iconColor: "text-gmail",
-    iconBg: "bg-[#EA4335]/10",
-    title: "Weekly Newsletter: Tech Digest",
-    badge: "FYI",
-    badgeColor: "bg-border-dark text-text-muted",
-    summary:
-      "This week in tech: AI developments, startup funding rounds, and the latest from major tech conferences.",
-    time: "1h ago",
-  },
-];
+  if (diffMins < 1) return "just now";
+  if (diffMins < 60) return `${diffMins}m ago`;
+  if (diffHours < 24) return `${diffHours}h ago`;
+  return `${diffDays}d ago`;
+}
+
+function getPlatformIcon(platform: string): { icon: string; color: string; bg: string } {
+  switch (platform) {
+    case "gmail":
+      return { icon: "mail", color: "text-gmail", bg: "bg-[#EA4335]/10" };
+    case "slack":
+      return { icon: "alternate_email", color: "text-slack", bg: "bg-[#E01E5A]/10" };
+    case "calendar":
+      return { icon: "calendar_month", color: "text-calendar", bg: "bg-[#4285F4]/10" };
+    default:
+      return { icon: "inbox", color: "text-text-muted", bg: "bg-border-dark" };
+  }
+}
+
+function getPriorityBadge(item: Item): { text: string; color: string } | null {
+  if (item.action_required) {
+    return { text: "ACTION REQUIRED", color: "bg-red-500/10 text-red-400" };
+  }
+  if (item.priority_score >= 80) {
+    return { text: "HIGH PRIORITY", color: "bg-red-500/10 text-red-400" };
+  }
+  if (item.priority_score >= 60) {
+    return { text: "IMPORTANT", color: "bg-amber-500/10 text-amber-400" };
+  }
+  return null;
+}
 
 export default function InboxPage() {
   const [activeFilter, setActiveFilter] = useState("All Sources");
+  const { data: user } = useUser();
+
+  const platformFilter = activeFilter === "All Sources"
+    ? undefined
+    : activeFilter.toLowerCase();
+
+  const { data: itemsData, isLoading, error } = useInboxItems({
+    platform: platformFilter,
+    is_archived: false,
+    page_size: 50,
+  });
+
+  const { data: stats } = useInboxStats();
+
+  const items = itemsData?.items || [];
 
   return (
     <>
@@ -101,52 +84,50 @@ export default function InboxPage() {
             <span className="material-symbols-outlined">notifications</span>
           </button>
           <div className="w-9 h-9 rounded-full bg-primary flex items-center justify-center text-sm font-bold">
-            U
+            {user?.name?.charAt(0).toUpperCase() || "U"}
           </div>
         </div>
       </header>
 
       {/* Main Content */}
       <div className="flex-1 overflow-y-auto p-8">
-        {/* Proactive Briefing Section */}
+        {/* Stats Section */}
         <section className="mb-8">
           <div className="flex items-center justify-between mb-4">
-            <h2 className="text-xl font-bold tracking-tight">Proactive Briefing</h2>
+            <h2 className="text-xl font-bold tracking-tight">Inbox Overview</h2>
             <span className="flex items-center gap-1.5 bg-surface-dark border border-border-dark rounded-lg px-3 py-1 text-xs text-text-muted">
-              <span className="material-symbols-outlined text-sm text-primary">
-                auto_awesome
+              <span className="material-symbols-outlined text-sm text-green-400">
+                sync
               </span>
-              AI Generated
+              Synced
             </span>
           </div>
 
-          <div className="grid grid-cols-3 gap-4">
-            {briefingCards.map((card, index) => (
-              <div
-                key={index}
-                className="bg-surface-dark rounded-xl border border-border-dark p-5"
-              >
-                <p className="text-sm text-primary mb-1">{card.title}</p>
-                <p className={`text-2xl font-bold ${card.valueColor}`}>
-                  {card.value}
-                </p>
-                {card.subtitle && (
-                  <p className="text-sm text-text-muted mt-1">{card.subtitle}</p>
-                )}
-                {card.tags && (
-                  <div className="flex gap-2 mt-3">
-                    {card.tags.map((tag, i) => (
-                      <span
-                        key={i}
-                        className="bg-primary/10 text-primary text-xs px-2 py-0.5 rounded font-medium"
-                      >
-                        {tag}
-                      </span>
-                    ))}
-                  </div>
-                )}
-              </div>
-            ))}
+          <div className="grid grid-cols-4 gap-4">
+            <div className="bg-surface-dark rounded-xl border border-border-dark p-5">
+              <p className="text-sm text-primary mb-1">Total Items</p>
+              <p className="text-2xl font-bold text-white">
+                {stats?.total || items.length}
+              </p>
+            </div>
+            <div className="bg-surface-dark rounded-xl border border-border-dark p-5">
+              <p className="text-sm text-primary mb-1">Unread</p>
+              <p className="text-2xl font-bold text-amber-400">
+                {stats?.unread || 0}
+              </p>
+            </div>
+            <div className="bg-surface-dark rounded-xl border border-border-dark p-5">
+              <p className="text-sm text-primary mb-1">Action Required</p>
+              <p className="text-2xl font-bold text-red-400">
+                {stats?.action_required || 0}
+              </p>
+            </div>
+            <div className="bg-surface-dark rounded-xl border border-border-dark p-5">
+              <p className="text-sm text-primary mb-1">From Gmail</p>
+              <p className="text-2xl font-bold text-white">
+                {stats?.by_platform?.gmail || items.length}
+              </p>
+            </div>
           </div>
         </section>
 
@@ -171,45 +152,85 @@ export default function InboxPage() {
             </div>
           </div>
 
-          <div className="space-y-3">
-            {feedItems.map((item) => (
-              <div
-                key={item.id}
-                className="bg-surface-dark rounded-xl border border-border-dark p-4 hover:border-primary/50 transition-all cursor-pointer"
-              >
-                <div className="flex gap-4">
+          {isLoading ? (
+            <div className="flex items-center justify-center py-12">
+              <span className="material-symbols-outlined text-4xl text-primary animate-spin">
+                progress_activity
+              </span>
+            </div>
+          ) : error ? (
+            <div className="bg-red-500/10 border border-red-500/20 rounded-xl p-4 text-center">
+              <p className="text-red-400">Failed to load inbox items</p>
+            </div>
+          ) : items.length === 0 ? (
+            <div className="bg-surface-dark rounded-xl border border-border-dark p-8 text-center">
+              <span className="material-symbols-outlined text-4xl text-text-muted mb-2">
+                inbox
+              </span>
+              <p className="text-text-muted">No items in your inbox</p>
+              <p className="text-sm text-text-muted mt-1">
+                Connect your accounts and sync to see your messages here
+              </p>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {items.map((item: Item) => {
+                const platformStyle = getPlatformIcon(item.platform);
+                const badge = getPriorityBadge(item);
+                const displayTitle = item.sender_name || item.sender_email || item.subject || "Unknown";
+                const displaySummary = item.ai_summary || item.snippet || item.subject || "";
+
+                return (
                   <div
-                    className={`w-10 h-10 rounded-lg ${item.iconBg} flex items-center justify-center shrink-0`}
+                    key={item.id}
+                    className={`bg-surface-dark rounded-xl border border-border-dark p-4 hover:border-primary/50 transition-all cursor-pointer ${
+                      !item.is_read ? "border-l-2 border-l-primary" : ""
+                    }`}
                   >
-                    <span
-                      className={`material-symbols-outlined ${item.iconColor} text-xl`}
-                    >
-                      {item.icon}
-                    </span>
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 mb-1">
-                      <h3 className="text-sm font-bold">{item.title}</h3>
-                      {item.badge && (
+                    <div className="flex gap-4">
+                      <div
+                        className={`w-10 h-10 rounded-lg ${platformStyle.bg} flex items-center justify-center shrink-0`}
+                      >
                         <span
-                          className={`text-[10px] ${item.badgeColor} px-2 py-0.5 rounded font-bold`}
+                          className={`material-symbols-outlined ${platformStyle.color} text-xl`}
                         >
-                          {item.badge}
+                          {platformStyle.icon}
                         </span>
-                      )}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 mb-1">
+                          <h3 className={`text-sm font-bold ${!item.is_read ? "text-white" : "text-text-muted"}`}>
+                            {displayTitle}
+                          </h3>
+                          {badge && (
+                            <span
+                              className={`text-[10px] ${badge.color} px-2 py-0.5 rounded font-bold`}
+                            >
+                              {badge.text}
+                            </span>
+                          )}
+                        </div>
+                        {item.subject && item.sender_name && (
+                          <p className="text-xs text-text-muted mb-1 truncate">
+                            {item.subject}
+                          </p>
+                        )}
+                        <p className="text-sm text-text-muted leading-relaxed line-clamp-2">
+                          {item.ai_summary && (
+                            <span className="text-primary">AI Summary: </span>
+                          )}
+                          {displaySummary}
+                        </p>
+                      </div>
+                      <span className="text-xs text-text-muted whitespace-nowrap">
+                        {getTimeAgo(item.received_at)}
+                      </span>
                     </div>
-                    <p className="text-sm text-text-muted leading-relaxed">
-                      <span className="text-primary">AI Summary:</span>{" "}
-                      {item.summary}
-                    </p>
                   </div>
-                  <span className="text-xs text-text-muted whitespace-nowrap">
-                    {item.time}
-                  </span>
-                </div>
-              </div>
-            ))}
-          </div>
+                );
+              })}
+            </div>
+          )}
         </section>
       </div>
     </>

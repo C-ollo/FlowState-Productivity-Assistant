@@ -36,7 +36,8 @@ class Briefing(Base):
 
     briefing_date: Mapped[date] = mapped_column(Date, index=True)
     briefing_type: Mapped[BriefingType] = mapped_column(
-        Enum(BriefingType), default=BriefingType.DAILY_MORNING
+        Enum(BriefingType, name="briefingtype", create_type=False, native_enum=True, values_callable=lambda x: [e.value for e in x]),
+        default=BriefingType.DAILY_MORNING
     )
 
     # AI-generated content

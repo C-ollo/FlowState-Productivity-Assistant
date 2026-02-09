@@ -191,7 +191,7 @@ class GmailIntegration(BaseIntegration):
                 sync_state.sync_token = data["historyId"]
             sync_state.last_sync_at = datetime.utcnow()
             sync_state.last_sync_status = "success"
-            sync_state.items_synced += items_synced
+            sync_state.items_synced = (sync_state.items_synced or 0) + items_synced
 
             await db.flush()
             return items_synced

@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import "./globals.css";
+import { QueryProvider } from "@/lib/query-provider";
 
 export const metadata: Metadata = {
   title: "Productivity OS",
@@ -24,7 +25,7 @@ export default function RootLayout({
         />
       </head>
       <body className="bg-background-dark text-white font-display min-h-screen">
-        {children}
+        <QueryProvider>{children}</QueryProvider>
       </body>
     </html>
   );

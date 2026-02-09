@@ -7,34 +7,25 @@ from sqlalchemy.ext.asyncio import async_engine_from_config
 
 from alembic import context
 
-# Import app config and models
+# Import app config
 from app.config import settings
-from app.database import Base
-
-# Import all models to register them with Base.metadata
-from app.models import (
-    User,
-    Connection as ConnectionModel,
-    Item,
-    Deadline,
-    Task,
-    Reminder,
-    Briefing,
-    SyncState,
-)
 
 # Alembic Config object
 config = context.config
 
-# Set the database URL from app settings
-config.set_main_option("sqlalchemy.url", settings.database_url_sync)
+# Set the database URL from app settings (use async URL for asyncpg driver)
+config.set_main_option("sqlalchemy.url", settings.database_url)
 
 # Interpret the config file for Python logging
 if config.config_file_name is not None:
     fileConfig(config.config_file_name)
 
 # Target metadata for autogenerate support
-target_metadata = Base.metadata
+# Note: For autogenerate to work, uncomment the model imports below
+# from app.database import Base
+# from app.models import User, Connection, Item, Deadline, Task, Reminder, Briefing, SyncState
+# target_metadata = Base.metadata
+target_metadata = None
 
 
 def run_migrations_offline() -> None:
