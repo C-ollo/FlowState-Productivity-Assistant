@@ -153,6 +153,18 @@ class ApiClient {
     return response.data;
   }
 
+  async processItemAI(id: string): Promise<Item> {
+    const response = await this.client.post<Item>(`/api/v1/inbox/${id}/process`);
+    return response.data;
+  }
+
+  async processAllItemsAI(): Promise<{ status: string; processed: number; total: number; errors?: any[] }> {
+    const response = await this.client.post<{ status: string; processed: number; total: number; errors?: any[] }>(
+      "/api/v1/inbox/process-all"
+    );
+    return response.data;
+  }
+
   // Deadlines
   async getDeadlines(params?: {
     status?: string;

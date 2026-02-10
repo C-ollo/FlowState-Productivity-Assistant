@@ -1,13 +1,15 @@
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
+from sqlalchemy import select, and_
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.deps import get_db, get_current_user_id
 from app.crud.item import item_crud
 from app.models.connection import Platform
-from app.models.item import ActionType, Category, ItemType
+from app.models.item import ActionType, Category, ItemType, Item
 from app.schemas.item import ItemFilter, ItemRead, ItemUpdate
+from app.services.ai_pipeline import process_item
 
 router = APIRouter()
 
@@ -128,3 +130,68 @@ async def mark_item_read(
         )
     item = await item_crud.update(db, item, ItemUpdate(is_read=True))
     return item
+
+
+@router.post("/{item_id}/process", response_model=ItemRead)
+async def process_item_ai(
+    item_id: UUID,
+    user_id: UUID = Depends(get_current_user_id),
+    db: AsyncSession = Depends(get_db),
+):
+    """Process a single item through the AI pipeline."""
+    item = await item_crud.get(db, item_id)
+    if not item or item.user_id != user_id:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Item not found",
+        )
+
+    try:
+        item = await process_item(db, item)
+        await db.commit()
+        return item
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"AI processing failed: {str(e)}",
+        )
+
+
+@router.post("/process-all")
+async def process_all_items(
+    user_id: UUID = Depends(get_current_user_id),
+    db: AsyncSession = Depends(get_db),
+):
+    """Process all unprocessed items through the AI pipeline."""
+    # Get unprocessed items
+    result = await db.execute(
+        select(Item).where(
+            and_(
+                Item.user_id == user_id,
+                Item.ai_processed_at.is_(None),
+            )
+        ).limit(50)  # Process in batches
+    )
+    items = list(result.scalars().all())
+
+    if not items:
+        return {"status": "success", "processed": 0, "message": "No items to process"}
+
+    processed_count = 0
+    errors = []
+
+    for item in items:
+        try:
+            await process_item(db, item)
+            processed_count += 1
+        except Exception as e:
+            errors.append({"item_id": str(item.id), "error": str(e)})
+
+    await db.commit()
+
+    return {
+        "status": "success",
+        "processed": processed_count,
+        "total": len(items),
+        "errors": errors if errors else None,
+    }

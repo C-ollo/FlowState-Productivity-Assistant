@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useConnections, useDisconnect, useSyncPlatform } from "@/hooks/use-connections";
 import { useUser, useLogout } from "@/hooks/use-auth";
+import { useProcessAllItemsAI } from "@/hooks/use-items";
 import api from "@/lib/api";
 
 const platforms = [
@@ -34,8 +35,10 @@ export default function SettingsPage() {
   const { data: connections, isLoading } = useConnections();
   const disconnect = useDisconnect();
   const syncPlatform = useSyncPlatform();
+  const processAllAI = useProcessAllItemsAI();
   const logout = useLogout();
   const [connecting, setConnecting] = useState<string | null>(null);
+  const [aiProcessResult, setAiProcessResult] = useState<{ processed: number; total: number } | null>(null);
 
   const getConnection = (platformId: string) => {
     return connections?.find((c) => c.platform === platformId);
@@ -214,43 +217,79 @@ export default function SettingsPage() {
           {/* AI Settings */}
           <section>
             <h3 className="text-sm font-bold uppercase tracking-wider text-text-muted mb-4">
-              AI Settings
+              AI Processing
             </h3>
             <div className="bg-surface-dark rounded-xl border border-border-dark p-4 space-y-4">
+              {/* Process All Button */}
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-bold">Auto-summarize messages</p>
+                  <p className="text-sm font-bold">Process Inbox with AI</p>
                   <p className="text-xs text-text-muted">
-                    Generate AI summaries for incoming messages
+                    Generate summaries, extract deadlines, and classify messages
                   </p>
                 </div>
-                <button className="relative w-11 h-6 bg-primary rounded-full transition-colors">
-                  <span className="absolute right-1 top-1 w-4 h-4 bg-white rounded-full transition-transform"></span>
+                <button
+                  onClick={() => {
+                    processAllAI.mutate(undefined, {
+                      onSuccess: (data) => {
+                        setAiProcessResult({ processed: data.processed, total: data.total });
+                      },
+                    });
+                  }}
+                  disabled={processAllAI.isPending}
+                  className="bg-primary text-white text-[11px] font-bold py-1.5 px-4 rounded-lg hover:bg-blue-600 transition-colors disabled:opacity-50 flex items-center gap-2"
+                >
+                  {processAllAI.isPending ? (
+                    <>
+                      <span className="material-symbols-outlined text-sm animate-spin">
+                        progress_activity
+                      </span>
+                      Processing...
+                    </>
+                  ) : (
+                    <>
+                      <span className="material-symbols-outlined text-sm">
+                        auto_awesome
+                      </span>
+                      Process All
+                    </>
+                  )}
                 </button>
               </div>
-              <div className="border-t border-border-dark"></div>
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-bold">Extract deadlines</p>
-                  <p className="text-xs text-text-muted">
-                    Automatically detect and extract deadlines from messages
+
+              {aiProcessResult && (
+                <div className="p-3 bg-green-500/10 rounded-lg">
+                  <p className="text-xs text-green-400">
+                    <span className="material-symbols-outlined text-sm align-middle mr-1">
+                      check_circle
+                    </span>
+                    Processed {aiProcessResult.processed} of {aiProcessResult.total} items
                   </p>
                 </div>
-                <button className="relative w-11 h-6 bg-primary rounded-full transition-colors">
-                  <span className="absolute right-1 top-1 w-4 h-4 bg-white rounded-full transition-transform"></span>
-                </button>
-              </div>
-              <div className="border-t border-border-dark"></div>
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-bold">Morning briefings</p>
-                  <p className="text-xs text-text-muted">
-                    Receive AI-generated daily briefings at 7:00 AM
+              )}
+
+              {processAllAI.isError && (
+                <div className="p-3 bg-red-500/10 rounded-lg">
+                  <p className="text-xs text-red-400">
+                    <span className="material-symbols-outlined text-sm align-middle mr-1">
+                      error
+                    </span>
+                    AI processing failed. Check your API key configuration.
                   </p>
                 </div>
-                <button className="relative w-11 h-6 bg-primary rounded-full transition-colors">
-                  <span className="absolute right-1 top-1 w-4 h-4 bg-white rounded-full transition-transform"></span>
-                </button>
+              )}
+
+              <div className="border-t border-border-dark"></div>
+
+              <div className="text-xs text-text-muted">
+                <p className="mb-2">AI processing includes:</p>
+                <ul className="list-disc list-inside space-y-1 ml-2">
+                  <li>Smart summaries for each message</li>
+                  <li>Deadline extraction with due dates</li>
+                  <li>Action classification (reply needed, review, etc.)</li>
+                  <li>Priority scoring (1-100)</li>
+                  <li>Category detection (work, school, personal)</li>
+                </ul>
               </div>
             </div>
           </section>

@@ -222,9 +222,21 @@ export default function InboxPage() {
                           {displaySummary}
                         </p>
                       </div>
-                      <span className="text-xs text-text-muted whitespace-nowrap">
-                        {getTimeAgo(item.received_at)}
-                      </span>
+                      <div className="flex flex-col items-end gap-1">
+                        <span className="text-xs text-text-muted whitespace-nowrap">
+                          {getTimeAgo(item.received_at)}
+                        </span>
+                        {item.priority_score > 0 && (
+                          <span className={`text-[10px] px-2 py-0.5 rounded font-bold ${
+                            item.priority_score >= 70 ? "bg-red-500/10 text-red-400" :
+                            item.priority_score >= 50 ? "bg-amber-500/10 text-amber-400" :
+                            item.priority_score >= 30 ? "bg-blue-500/10 text-blue-400" :
+                            "bg-border-dark text-text-muted"
+                          }`}>
+                            P{item.priority_score}
+                          </span>
+                        )}
+                      </div>
                     </div>
                   </div>
                 );

@@ -48,10 +48,19 @@ class Settings(BaseSettings):
     algorithm: str = "HS256"
 
     # AI Provider
-    llm_provider: Literal["anthropic", "openai", "ollama"] = "anthropic"
+    llm_provider: Literal["anthropic", "openai", "ollama", "bedrock"] = "anthropic"
     anthropic_api_key: str = ""
     openai_api_key: str = ""
     ollama_base_url: str = "http://localhost:11434"
+    gemini_api_key: str = ""
+    deepseek_api_key: str = ""
+
+    # AWS Bedrock
+    aws_access_key_id: str = ""
+    aws_secret_access_key: str = ""
+    aws_session_token: str = ""
+    aws_region: str = "us-east-1"
+    bedrock_model_id: str = "deepseek.v3.2"
 
     # Gmail OAuth
     gmail_client_id: str = ""

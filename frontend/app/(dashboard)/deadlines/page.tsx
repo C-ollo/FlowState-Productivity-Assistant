@@ -1,146 +1,107 @@
 "use client";
 
 import { useState } from "react";
+import { useDeadlines, useUpcomingDeadlines, useOverdueDeadlines } from "@/hooks/use-deadlines";
+import { useUser } from "@/hooks/use-auth";
+import { Deadline } from "@/types";
 
 const categoryFilters = ["All", "Work", "School", "Personal"];
 
-const overdueItems = [
-  {
-    id: 1,
-    platform: "slack",
-    icon: "alternate_email",
-    iconColor: "text-slack",
-    title: "Fix CSS bug in production dashboard",
-    sender: "Sarah Chen",
-    tag: "#project-alpha",
-    badge: "URGENT",
-    badgeColor: "bg-red-500/10 text-red-400",
-    deadline: "Yesterday, 5:00 PM",
-    deadlineColor: "text-red-400",
-    deadlineLabel: "Extracted Deadline",
-    hasBorderAccent: true,
-  },
-  {
-    id: 2,
-    platform: "gmail",
-    icon: "mail",
-    iconColor: "text-gmail",
-    title: "Q3 Review Feedback and Action Items",
-    sender: "Mark Peters",
-    tag: "HR",
-    badge: null,
-    deadline: "Oct 12th",
-    deadlineColor: "text-red-400",
-    deadlineLabel: "Extracted Deadline",
-    hasBorderAccent: false,
-  },
-];
+function formatDeadline(date: string): string {
+  const deadline = new Date(date);
+  const now = new Date();
+  const diffMs = deadline.getTime() - now.getTime();
+  const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
+  const diffDays = Math.floor(diffHours / 24);
 
-const dueTodayItems = [
-  {
-    id: 3,
-    platform: "calendar",
-    icon: "calendar_month",
-    iconColor: "text-calendar",
-    title: "Weekly Sync: Design Operations",
-    sender: "Internal",
-    tag: "Calendar",
-    badge: "MEETING",
-    badgeColor: "bg-primary/10 text-primary",
-    deadline: "In 2 hours",
-    deadlineColor: "text-amber-400",
-    deadlineLabel: "Time Remaining",
-    hasBorderAccent: false,
-  },
-  {
-    id: 4,
-    platform: "slack",
-    icon: "alternate_email",
-    iconColor: "text-slack",
-    title: "Review draft proposal for client X",
-    sender: "Linda Wu",
-    tag: "#client-work",
-    badge: null,
-    deadline: "Today, 6:00 PM",
-    deadlineColor: "text-white",
-    deadlineLabel: "Extracted Deadline",
-    hasBorderAccent: false,
-  },
-];
+  if (diffMs < 0) {
+    const absDays = Math.abs(diffDays);
+    if (absDays === 0) return "Earlier today";
+    if (absDays === 1) return "Yesterday";
+    return `${absDays} days ago`;
+  }
 
-const dueThisWeekItems = [
-  {
-    id: 5,
-    platform: "gmail",
-    icon: "mail",
-    iconColor: "text-gmail",
-    title: "Flight Confirmation: SF to NY",
-    sender: "United Airlines",
-    tag: "Personal",
-    badge: null,
-    deadline: "Thursday, 8:00 AM",
-    deadlineColor: "text-white",
-    deadlineLabel: "Extracted Deadline",
-    hasBorderAccent: false,
-  },
-];
+  if (diffHours < 1) return "Less than 1 hour";
+  if (diffHours < 24) return `In ${diffHours} hours`;
+  if (diffDays === 1) return "Tomorrow";
+  if (diffDays < 7) return `In ${diffDays} days`;
 
-interface DeadlineItem {
-  id: number;
-  platform: string;
-  icon: string;
-  iconColor: string;
-  title: string;
-  sender: string;
-  tag: string;
-  badge: string | null;
-  badgeColor?: string;
-  deadline: string;
-  deadlineColor: string;
-  deadlineLabel: string;
-  hasBorderAccent: boolean;
+  return deadline.toLocaleDateString("en-US", {
+    month: "short",
+    day: "numeric",
+    weekday: "short"
+  });
 }
 
-function DeadlineCard({ item }: { item: DeadlineItem }) {
+function isToday(date: string): boolean {
+  const d = new Date(date);
+  const now = new Date();
+  return d.toDateString() === now.toDateString();
+}
+
+function isThisWeek(date: string): boolean {
+  const d = new Date(date);
+  const now = new Date();
+  const weekFromNow = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
+  return d > now && d <= weekFromNow;
+}
+
+function isOverdue(date: string): boolean {
+  return new Date(date) < new Date();
+}
+
+function DeadlineCard({ deadline }: { deadline: Deadline }) {
+  const overdue = isOverdue(deadline.due_at);
+  const today = !overdue && isToday(deadline.due_at);
+
   return (
     <div
       className={`bg-surface-dark rounded-xl border border-border-dark p-4 shadow-lg group hover:border-primary/50 transition-all cursor-pointer ${
-        item.hasBorderAccent ? "border-l-4 border-l-red-500" : ""
+        overdue ? "border-l-4 border-l-red-500" : today ? "border-l-4 border-l-amber-400" : ""
       }`}
     >
       <div className="flex items-start justify-between mb-3">
-        <span className={`material-symbols-outlined ${item.iconColor} text-xl`}>
-          {item.icon}
+        <span className="material-symbols-outlined text-amber-400 text-xl">
+          timer
         </span>
-        {item.badge && (
-          <span className={`text-[10px] ${item.badgeColor} px-2 py-0.5 rounded font-bold`}>
-            {item.badge}
+        {deadline.confidence >= 0.9 && (
+          <span className="text-[10px] bg-green-500/10 text-green-400 px-2 py-0.5 rounded font-bold">
+            HIGH CONFIDENCE
+          </span>
+        )}
+        {overdue && (
+          <span className="text-[10px] bg-red-500/10 text-red-400 px-2 py-0.5 rounded font-bold">
+            OVERDUE
           </span>
         )}
       </div>
       <h4 className="text-sm font-bold leading-tight mb-2 group-hover:text-primary transition-colors">
-        {item.title}
+        {deadline.title}
       </h4>
-      <div className="flex items-center gap-2 mb-4">
-        <div className="w-6 h-6 rounded-full bg-border-dark flex items-center justify-center text-[10px] text-text-muted">
-          {item.sender[0]}
-        </div>
-        <p className="text-xs text-text-muted">
-          {item.sender} <span className="mx-1">•</span> {item.tag}
+      {deadline.source_text && (
+        <p className="text-xs text-text-muted mb-3 line-clamp-2">
+          "{deadline.source_text}"
         </p>
-      </div>
+      )}
       <div className="flex items-center justify-between border-t border-border-dark pt-3 mt-1">
         <div className="flex flex-col">
           <p className="text-[10px] uppercase text-text-muted font-bold">
-            {item.deadlineLabel}
+            Due Date
           </p>
-          <p className={`text-xs ${item.deadlineColor} font-medium`}>
-            {item.deadline}
+          <p className={`text-xs font-medium ${
+            overdue ? "text-red-400" : today ? "text-amber-400" : "text-white"
+          }`}>
+            {formatDeadline(deadline.due_at)}
           </p>
         </div>
-        <button className="bg-primary text-white text-[11px] font-bold py-1.5 px-3 rounded-lg hover:bg-blue-600 transition-colors">
-          Create Task
-        </button>
+        <div className="flex gap-2">
+          <button className="text-[11px] text-text-muted hover:text-white py-1.5 px-3 rounded-lg border border-border-dark hover:border-primary transition-colors">
+            Dismiss
+          </button>
+          <button className="bg-primary text-white text-[11px] font-bold py-1.5 px-3 rounded-lg hover:bg-blue-600 transition-colors">
+            Create Task
+          </button>
+        </div>
       </div>
     </div>
   );
@@ -149,6 +110,24 @@ function DeadlineCard({ item }: { item: DeadlineItem }) {
 export default function DeadlinesPage() {
   const [activeCategory, setActiveCategory] = useState("All");
   const [viewMode, setViewMode] = useState<"kanban" | "timeline">("kanban");
+  const { data: user } = useUser();
+
+  const { data: overdueData } = useOverdueDeadlines();
+  const { data: upcomingData } = useUpcomingDeadlines(30);
+
+  const overdueDeadlines = overdueData || [];
+  const allUpcoming = upcomingData || [];
+
+  // Split upcoming into today and this week
+  const todayDeadlines = allUpcoming.filter(
+    (d: Deadline) => isToday(d.due_at) && !isOverdue(d.due_at)
+  );
+  const thisWeekDeadlines = allUpcoming.filter(
+    (d: Deadline) => !isToday(d.due_at) && isThisWeek(d.due_at)
+  );
+  const laterDeadlines = allUpcoming.filter(
+    (d: Deadline) => !isToday(d.due_at) && !isThisWeek(d.due_at) && !isOverdue(d.due_at)
+  );
 
   return (
     <>
@@ -197,7 +176,7 @@ export default function DeadlinesPage() {
               <span className="material-symbols-outlined">notifications</span>
             </button>
             <div className="w-9 h-9 rounded-full bg-primary flex items-center justify-center text-sm font-bold">
-              U
+              {user?.name?.charAt(0).toUpperCase() || "U"}
             </div>
           </div>
         </div>
@@ -224,10 +203,10 @@ export default function DeadlinesPage() {
             </button>
           ))}
           <div className="h-4 w-px bg-border-dark mx-2"></div>
-          <button className="text-xs text-text-muted flex items-center gap-1 hover:text-white">
-            <span className="material-symbols-outlined text-sm">filter_list</span>
-            Filter by Platform
-          </button>
+          <span className="text-xs text-text-muted flex items-center gap-1">
+            <span className="material-symbols-outlined text-sm text-primary">auto_awesome</span>
+            AI-extracted from your messages
+          </span>
         </div>
       </header>
 
@@ -241,14 +220,23 @@ export default function DeadlinesPage() {
                 <span className="w-2 h-2 rounded-full bg-red-400 animate-pulse"></span>
                 Overdue
                 <span className="ml-1 text-xs px-2 py-0.5 rounded bg-red-400/10 border border-red-400/20">
-                  {overdueItems.length}
+                  {overdueDeadlines.length}
                 </span>
               </h3>
             </div>
             <div className="flex flex-col gap-4 overflow-y-auto pr-2">
-              {overdueItems.map((item) => (
-                <DeadlineCard key={item.id} item={item} />
-              ))}
+              {overdueDeadlines.length > 0 ? (
+                overdueDeadlines.map((deadline: Deadline) => (
+                  <DeadlineCard key={deadline.id} deadline={deadline} />
+                ))
+              ) : (
+                <div className="flex flex-col items-center justify-center p-8 border-2 border-dashed border-border-dark rounded-xl text-center">
+                  <span className="material-symbols-outlined text-green-400 text-3xl mb-2">
+                    check_circle
+                  </span>
+                  <p className="text-xs text-text-muted">No overdue items!</p>
+                </div>
+              )}
             </div>
           </div>
 
@@ -258,14 +246,23 @@ export default function DeadlinesPage() {
               <h3 className="flex items-center gap-2 text-sm font-bold uppercase tracking-wider text-amber-400">
                 Due Today
                 <span className="ml-1 text-xs px-2 py-0.5 rounded bg-amber-400/10 border border-amber-400/20">
-                  {dueTodayItems.length}
+                  {todayDeadlines.length}
                 </span>
               </h3>
             </div>
             <div className="flex flex-col gap-4 overflow-y-auto pr-2">
-              {dueTodayItems.map((item) => (
-                <DeadlineCard key={item.id} item={item} />
-              ))}
+              {todayDeadlines.length > 0 ? (
+                todayDeadlines.map((deadline: Deadline) => (
+                  <DeadlineCard key={deadline.id} deadline={deadline} />
+                ))
+              ) : (
+                <div className="flex flex-col items-center justify-center p-8 border-2 border-dashed border-border-dark rounded-xl text-center">
+                  <span className="material-symbols-outlined text-text-muted text-3xl mb-2">
+                    event_available
+                  </span>
+                  <p className="text-xs text-text-muted">Nothing due today</p>
+                </div>
+              )}
             </div>
           </div>
 
@@ -275,14 +272,23 @@ export default function DeadlinesPage() {
               <h3 className="flex items-center gap-2 text-sm font-bold uppercase tracking-wider text-text-muted">
                 Due This Week
                 <span className="ml-1 text-xs px-2 py-0.5 rounded bg-border-dark">
-                  {dueThisWeekItems.length}
+                  {thisWeekDeadlines.length}
                 </span>
               </h3>
             </div>
             <div className="flex flex-col gap-4 overflow-y-auto pr-2">
-              {dueThisWeekItems.map((item) => (
-                <DeadlineCard key={item.id} item={item} />
-              ))}
+              {thisWeekDeadlines.length > 0 ? (
+                thisWeekDeadlines.map((deadline: Deadline) => (
+                  <DeadlineCard key={deadline.id} deadline={deadline} />
+                ))
+              ) : (
+                <div className="flex flex-col items-center justify-center p-8 border-2 border-dashed border-border-dark rounded-xl text-center">
+                  <span className="material-symbols-outlined text-text-muted text-3xl mb-2">
+                    event_available
+                  </span>
+                  <p className="text-xs text-text-muted">Nothing due this week</p>
+                </div>
+              )}
             </div>
           </div>
 
@@ -292,19 +298,25 @@ export default function DeadlinesPage() {
               <h3 className="flex items-center gap-2 text-sm font-bold uppercase tracking-wider text-text-muted">
                 Upcoming
                 <span className="ml-1 text-xs px-2 py-0.5 rounded bg-border-dark">
-                  12
+                  {laterDeadlines.length}
                 </span>
               </h3>
             </div>
             <div className="flex flex-col gap-4 overflow-y-auto pr-2">
-              <div className="flex flex-col items-center justify-center p-8 border-2 border-dashed border-border-dark rounded-xl text-center">
-                <span className="material-symbols-outlined text-border-dark text-4xl mb-2">
-                  event_available
-                </span>
-                <p className="text-xs text-text-muted">
-                  Items for next week will appear here as they are detected.
-                </p>
-              </div>
+              {laterDeadlines.length > 0 ? (
+                laterDeadlines.map((deadline: Deadline) => (
+                  <DeadlineCard key={deadline.id} deadline={deadline} />
+                ))
+              ) : (
+                <div className="flex flex-col items-center justify-center p-8 border-2 border-dashed border-border-dark rounded-xl text-center">
+                  <span className="material-symbols-outlined text-border-dark text-4xl mb-2">
+                    event_available
+                  </span>
+                  <p className="text-xs text-text-muted">
+                    Items for later will appear here as they are detected.
+                  </p>
+                </div>
+              )}
             </div>
           </div>
         </div>

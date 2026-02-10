@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import ReactMarkdown from "react-markdown";
 import { useInboxItems } from "@/hooks/use-items";
 import { useUser } from "@/hooks/use-auth";
 import { useTodayBriefing } from "@/hooks/use-briefings";
@@ -134,10 +135,39 @@ export default function DashboardPage() {
             </div>
             <div className="bg-surface-dark rounded-xl border border-border-dark p-6">
               {briefing ? (
-                <div className="prose prose-invert prose-sm max-w-none">
-                  <p className="text-text-muted leading-relaxed whitespace-pre-wrap">
+                <div className="briefing-content">
+                  <ReactMarkdown
+                    components={{
+                      h2: ({ children }) => (
+                        <div className="flex items-center gap-2 mb-3 mt-4 first:mt-0">
+                          <h2 className="text-base font-bold text-white">{children}</h2>
+                        </div>
+                      ),
+                      h3: ({ children }) => (
+                        <h3 className="text-sm font-bold text-primary mt-3 mb-2">{children}</h3>
+                      ),
+                      ul: ({ children }) => (
+                        <ul className="space-y-2 mb-4">{children}</ul>
+                      ),
+                      li: ({ children }) => (
+                        <li className="flex items-start gap-2 text-sm text-text-muted">
+                          <span className="material-symbols-outlined text-primary text-sm mt-0.5">arrow_right</span>
+                          <span className="flex-1">{children}</span>
+                        </li>
+                      ),
+                      p: ({ children }) => (
+                        <p className="text-sm text-text-muted mb-3 leading-relaxed">{children}</p>
+                      ),
+                      strong: ({ children }) => (
+                        <strong className="text-white font-semibold">{children}</strong>
+                      ),
+                      em: ({ children }) => (
+                        <em className="text-amber-400 not-italic">{children}</em>
+                      ),
+                    }}
+                  >
                     {briefing.content}
-                  </p>
+                  </ReactMarkdown>
                 </div>
               ) : (
                 <div className="text-center py-8">

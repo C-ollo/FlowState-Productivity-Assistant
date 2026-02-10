@@ -13,7 +13,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className="dark">
+    <html lang="en" className="dark" suppressHydrationWarning>
       <head>
         <link
           href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
@@ -24,7 +24,7 @@ export default function RootLayout({
           rel="stylesheet"
         />
       </head>
-      <body className="bg-background-dark text-white font-display min-h-screen">
+      <body className="bg-background-dark text-white font-display min-h-screen" suppressHydrationWarning>
         <QueryProvider>{children}</QueryProvider>
       </body>
     </html>

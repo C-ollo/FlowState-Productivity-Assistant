@@ -67,3 +67,26 @@ export function useMarkAsRead() {
     },
   });
 }
+
+export function useProcessItemAI() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (id: string) => api.processItemAI(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["inbox"] });
+    },
+  });
+}
+
+export function useProcessAllItemsAI() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: () => api.processAllItemsAI(),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["inbox"] });
+      queryClient.invalidateQueries({ queryKey: ["deadlines"] });
+    },
+  });
+}
