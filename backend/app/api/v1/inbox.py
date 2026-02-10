@@ -1,8 +1,9 @@
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
-from sqlalchemy import select, and_
+from sqlalchemy import select, and_, or_
 from sqlalchemy.ext.asyncio import AsyncSession
+from datetime import datetime, timezone
 
 from app.api.deps import get_db, get_current_user_id
 from app.crud.item import item_crud
@@ -62,6 +63,32 @@ async def get_inbox_stats(
         "unread_count": unread_count,
         "action_required_count": action_count,
     }
+
+
+@router.get("/next-event", response_model=ItemRead | None)
+async def get_next_event(
+    user_id: UUID = Depends(get_current_user_id),
+    db: AsyncSession = Depends(get_db),
+):
+    """Get the next upcoming calendar event."""
+    now = datetime.now(timezone.utc)
+    result = await db.execute(
+        select(Item)
+        .where(
+            and_(
+                Item.user_id == user_id,
+                or_(
+                    Item.item_type == ItemType.CALENDAR_EVENT,
+                    Item.item_type == ItemType.CALENDAR_INVITE,
+                ),
+                Item.event_start > now,
+            )
+        )
+        .order_by(Item.event_start.asc())
+        .limit(1)
+    )
+    item = result.scalars().first()
+    return item
 
 
 @router.get("/{item_id}", response_model=ItemRead)

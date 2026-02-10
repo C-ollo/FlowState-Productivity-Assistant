@@ -1,9 +1,10 @@
 "use client";
 
 import { useState } from "react";
-import { useDeadlines, useUpcomingDeadlines, useOverdueDeadlines } from "@/hooks/use-deadlines";
+import { useDeadlines, useUpcomingDeadlines, useOverdueDeadlines, useUpdateDeadline } from "@/hooks/use-deadlines";
+import { useCreateTask } from "@/hooks/use-tasks";
 import { useUser } from "@/hooks/use-auth";
-import { Deadline } from "@/types";
+import { Deadline, TaskPriority } from "@/types";
 
 const categoryFilters = ["All", "Work", "School", "Personal"];
 
@@ -50,9 +51,55 @@ function isOverdue(date: string): boolean {
   return new Date(date) < new Date();
 }
 
+function getPriorityLabel(score: number | undefined): { label: string; color: string } {
+  if (score == null) return { label: "MEDIUM", color: "text-blue-400 bg-blue-500/10" };
+  if (score >= 80) return { label: "URGENT", color: "text-red-400 bg-red-500/10" };
+  if (score >= 60) return { label: "HIGH", color: "text-orange-400 bg-orange-500/10" };
+  if (score >= 40) return { label: "MEDIUM", color: "text-blue-400 bg-blue-500/10" };
+  return { label: "LOW", color: "text-green-400 bg-green-500/10" };
+}
+
+function sortByPriority(deadlines: Deadline[]): Deadline[] {
+  return [...deadlines].sort((a, b) => (b.priority_score ?? 50) - (a.priority_score ?? 50));
+}
+
+function scoreToTaskPriority(score: number | undefined): TaskPriority {
+  if (score == null) return "medium";
+  if (score >= 80) return "urgent";
+  if (score >= 60) return "high";
+  if (score >= 40) return "medium";
+  return "low";
+}
+
 function DeadlineCard({ deadline }: { deadline: Deadline }) {
   const overdue = isOverdue(deadline.due_at);
   const today = !overdue && isToday(deadline.due_at);
+  const priority = getPriorityLabel(deadline.priority_score);
+
+  const updateDeadline = useUpdateDeadline();
+  const createTask = useCreateTask();
+
+  const isDismissing = updateDeadline.isPending;
+  const isCreating = createTask.isPending;
+
+  function handleDismiss(e: React.MouseEvent) {
+    e.stopPropagation();
+    updateDeadline.mutate({
+      id: deadline.id,
+      data: { status: "cancelled" },
+    });
+  }
+
+  function handleCreateTask(e: React.MouseEvent) {
+    e.stopPropagation();
+    createTask.mutate({
+      title: deadline.title,
+      description: deadline.source_text || undefined,
+      due_at: deadline.due_at,
+      priority: scoreToTaskPriority(deadline.priority_score),
+      deadline_id: deadline.id,
+    });
+  }
 
   return (
     <div
@@ -64,23 +111,23 @@ function DeadlineCard({ deadline }: { deadline: Deadline }) {
         <span className="material-symbols-outlined text-amber-400 text-xl">
           timer
         </span>
-        {deadline.confidence >= 0.9 && (
-          <span className="text-[10px] bg-green-500/10 text-green-400 px-2 py-0.5 rounded font-bold">
-            HIGH CONFIDENCE
+        <div className="flex gap-1.5">
+          <span className={`text-[10px] ${priority.color} px-2 py-0.5 rounded font-bold`}>
+            {priority.label}
           </span>
-        )}
-        {overdue && (
-          <span className="text-[10px] bg-red-500/10 text-red-400 px-2 py-0.5 rounded font-bold">
-            OVERDUE
-          </span>
-        )}
+          {overdue && (
+            <span className="text-[10px] bg-red-500/10 text-red-400 px-2 py-0.5 rounded font-bold">
+              OVERDUE
+            </span>
+          )}
+        </div>
       </div>
       <h4 className="text-sm font-bold leading-tight mb-2 group-hover:text-primary transition-colors">
         {deadline.title}
       </h4>
       {deadline.source_text && (
         <p className="text-xs text-text-muted mb-3 line-clamp-2">
-          "{deadline.source_text}"
+          &ldquo;{deadline.source_text}&rdquo;
         </p>
       )}
       <div className="flex items-center justify-between border-t border-border-dark pt-3 mt-1">
@@ -95,11 +142,19 @@ function DeadlineCard({ deadline }: { deadline: Deadline }) {
           </p>
         </div>
         <div className="flex gap-2">
-          <button className="text-[11px] text-text-muted hover:text-white py-1.5 px-3 rounded-lg border border-border-dark hover:border-primary transition-colors">
-            Dismiss
+          <button
+            onClick={handleDismiss}
+            disabled={isDismissing}
+            className="text-[11px] text-text-muted hover:text-white py-1.5 px-3 rounded-lg border border-border-dark hover:border-red-400/50 hover:bg-red-500/5 transition-colors disabled:opacity-50"
+          >
+            {isDismissing ? "Dismissing..." : "Dismiss"}
           </button>
-          <button className="bg-primary text-white text-[11px] font-bold py-1.5 px-3 rounded-lg hover:bg-blue-600 transition-colors">
-            Create Task
+          <button
+            onClick={handleCreateTask}
+            disabled={isCreating || createTask.isSuccess}
+            className="bg-primary text-white text-[11px] font-bold py-1.5 px-3 rounded-lg hover:bg-blue-600 transition-colors disabled:opacity-50"
+          >
+            {createTask.isSuccess ? "Created!" : isCreating ? "Creating..." : "Create Task"}
           </button>
         </div>
       </div>
@@ -211,10 +266,10 @@ export default function DeadlinesPage() {
       </header>
 
       {/* Kanban Board Area */}
-      <div className="flex-1 overflow-x-auto bg-[#0a0d14] p-6">
-        <div className="flex h-full gap-6 min-w-max">
+      <div className="flex-1 overflow-x-auto overflow-y-hidden bg-[#0a0d14] p-6 scrollbar-thin">
+        <div className="flex h-full gap-5 min-w-max pr-4">
           {/* Overdue Column */}
-          <div className="flex flex-col w-80 gap-4">
+          <div className="flex flex-col w-72 shrink-0 gap-4">
             <div className="flex items-center justify-between px-1">
               <h3 className="flex items-center gap-2 text-sm font-bold uppercase tracking-wider text-red-400">
                 <span className="w-2 h-2 rounded-full bg-red-400 animate-pulse"></span>
@@ -226,7 +281,7 @@ export default function DeadlinesPage() {
             </div>
             <div className="flex flex-col gap-4 overflow-y-auto pr-2">
               {overdueDeadlines.length > 0 ? (
-                overdueDeadlines.map((deadline: Deadline) => (
+                sortByPriority(overdueDeadlines).map((deadline: Deadline) => (
                   <DeadlineCard key={deadline.id} deadline={deadline} />
                 ))
               ) : (
@@ -241,7 +296,7 @@ export default function DeadlinesPage() {
           </div>
 
           {/* Due Today Column */}
-          <div className="flex flex-col w-80 gap-4">
+          <div className="flex flex-col w-72 shrink-0 gap-4">
             <div className="flex items-center justify-between px-1">
               <h3 className="flex items-center gap-2 text-sm font-bold uppercase tracking-wider text-amber-400">
                 Due Today
@@ -252,7 +307,7 @@ export default function DeadlinesPage() {
             </div>
             <div className="flex flex-col gap-4 overflow-y-auto pr-2">
               {todayDeadlines.length > 0 ? (
-                todayDeadlines.map((deadline: Deadline) => (
+                sortByPriority(todayDeadlines).map((deadline: Deadline) => (
                   <DeadlineCard key={deadline.id} deadline={deadline} />
                 ))
               ) : (
@@ -267,7 +322,7 @@ export default function DeadlinesPage() {
           </div>
 
           {/* Due This Week Column */}
-          <div className="flex flex-col w-80 gap-4">
+          <div className="flex flex-col w-72 shrink-0 gap-4">
             <div className="flex items-center justify-between px-1">
               <h3 className="flex items-center gap-2 text-sm font-bold uppercase tracking-wider text-text-muted">
                 Due This Week
@@ -278,7 +333,7 @@ export default function DeadlinesPage() {
             </div>
             <div className="flex flex-col gap-4 overflow-y-auto pr-2">
               {thisWeekDeadlines.length > 0 ? (
-                thisWeekDeadlines.map((deadline: Deadline) => (
+                sortByPriority(thisWeekDeadlines).map((deadline: Deadline) => (
                   <DeadlineCard key={deadline.id} deadline={deadline} />
                 ))
               ) : (
@@ -293,7 +348,7 @@ export default function DeadlinesPage() {
           </div>
 
           {/* Upcoming Column */}
-          <div className="flex flex-col w-80 gap-4">
+          <div className="flex flex-col w-72 shrink-0 gap-4">
             <div className="flex items-center justify-between px-1">
               <h3 className="flex items-center gap-2 text-sm font-bold uppercase tracking-wider text-text-muted">
                 Upcoming
@@ -304,7 +359,7 @@ export default function DeadlinesPage() {
             </div>
             <div className="flex flex-col gap-4 overflow-y-auto pr-2">
               {laterDeadlines.length > 0 ? (
-                laterDeadlines.map((deadline: Deadline) => (
+                sortByPriority(laterDeadlines).map((deadline: Deadline) => (
                   <DeadlineCard key={deadline.id} deadline={deadline} />
                 ))
               ) : (

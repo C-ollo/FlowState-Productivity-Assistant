@@ -43,7 +43,14 @@ async def get_task_stats(
 ) -> dict:
     """Get task statistics by status."""
     counts = await task_crud.count_by_status(db, user_id)
-    return {"counts": counts}
+    total = sum(counts.values())
+    return {
+        "total": total,
+        "by_status": counts,
+        "by_priority": {},
+        "due_today": 0,
+        "overdue": 0,
+    }
 
 
 @router.get("/{task_id}", response_model=TaskRead)

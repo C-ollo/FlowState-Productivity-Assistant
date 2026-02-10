@@ -68,6 +68,13 @@ class Deadline(Base):
     source_item: Mapped["Item | None"] = relationship(
         "Item", back_populates="deadlines"
     )
+
+    @property
+    def priority_score(self) -> int | None:
+        """Get priority score from the linked item."""
+        if self.source_item is not None:
+            return self.source_item.priority_score
+        return None
     tasks: Mapped[list["Task"]] = relationship(
         "Task", back_populates="deadline"
     )

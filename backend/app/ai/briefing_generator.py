@@ -43,7 +43,8 @@ async def generate_daily_briefing(
 
     unread_summary = ""
     for item in unread_items:
-        priority_label = "🔴" if item.priority_score >= 70 else "🟡" if item.priority_score >= 50 else "⚪"
+        score = item.priority_score or 0
+        priority_label = "🔴" if score >= 70 else "🟡" if score >= 50 else "⚪"
         summary = item.ai_summary or item.snippet or item.subject or "No preview"
         unread_summary += f"- {priority_label} [{item.platform.value}] {item.sender_name or item.sender_email}: {summary[:100]}\n"
 

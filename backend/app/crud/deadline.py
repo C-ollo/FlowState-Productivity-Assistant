@@ -3,6 +3,7 @@ from uuid import UUID
 
 from sqlalchemy import select, and_
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import selectinload
 
 from app.models.deadline import Deadline, DeadlineStatus
 from app.schemas.deadline import DeadlineCreate, DeadlineUpdate, DeadlineFilter
@@ -13,14 +14,18 @@ class DeadlineCRUD:
 
     async def get(self, db: AsyncSession, deadline_id: UUID) -> Deadline | None:
         """Get deadline by ID."""
-        result = await db.execute(select(Deadline).where(Deadline.id == deadline_id))
+        result = await db.execute(
+            select(Deadline)
+            .options(selectinload(Deadline.source_item))
+            .where(Deadline.id == deadline_id)
+        )
         return result.scalar_one_or_none()
 
     async def get_multi(
         self, db: AsyncSession, user_id: UUID, filters: DeadlineFilter
     ) -> list[Deadline]:
         """Get multiple deadlines with filters."""
-        query = select(Deadline).where(Deadline.user_id == user_id)
+        query = select(Deadline).options(selectinload(Deadline.source_item)).where(Deadline.user_id == user_id)
 
         if filters.status:
             query = query.where(Deadline.status == filters.status)
@@ -46,6 +51,7 @@ class DeadlineCRUD:
 
         result = await db.execute(
             select(Deadline)
+            .options(selectinload(Deadline.source_item))
             .where(
                 and_(
                     Deadline.user_id == user_id,
@@ -64,6 +70,7 @@ class DeadlineCRUD:
 
         result = await db.execute(
             select(Deadline)
+            .options(selectinload(Deadline.source_item))
             .where(
                 and_(
                     Deadline.user_id == user_id,
@@ -82,8 +89,14 @@ class DeadlineCRUD:
         deadline = Deadline(user_id=user_id, **deadline_in.model_dump())
         db.add(deadline)
         await db.flush()
-        await db.refresh(deadline)
-        return deadline
+
+        # Re-fetch with relationship for priority_score property
+        result = await db.execute(
+            select(Deadline)
+            .options(selectinload(Deadline.source_item))
+            .where(Deadline.id == deadline.id)
+        )
+        return result.scalar_one()
 
     async def update(
         self, db: AsyncSession, deadline: Deadline, deadline_in: DeadlineUpdate
@@ -99,8 +112,14 @@ class DeadlineCRUD:
             setattr(deadline, field, value)
 
         await db.flush()
-        await db.refresh(deadline)
-        return deadline
+
+        # Re-fetch with relationship for priority_score property
+        result = await db.execute(
+            select(Deadline)
+            .options(selectinload(Deadline.source_item))
+            .where(Deadline.id == deadline.id)
+        )
+        return result.scalar_one()
 
     async def mark_overdue(self, db: AsyncSession, user_id: UUID) -> int:
         """Mark all past-due deadlines as overdue. Returns count updated."""

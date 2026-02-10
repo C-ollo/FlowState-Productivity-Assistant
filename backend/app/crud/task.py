@@ -3,7 +3,9 @@ from uuid import UUID
 
 from sqlalchemy import select, and_, func
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import selectinload
 
+from app.models.deadline import Deadline
 from app.models.task import Task, TaskStatus
 from app.schemas.task import TaskCreate, TaskUpdate, TaskFilter
 
@@ -13,14 +15,28 @@ class TaskCRUD:
 
     async def get(self, db: AsyncSession, task_id: UUID) -> Task | None:
         """Get task by ID."""
-        result = await db.execute(select(Task).where(Task.id == task_id))
+        result = await db.execute(
+            select(Task)
+            .options(
+                selectinload(Task.source_item),
+                selectinload(Task.deadline).selectinload(Deadline.source_item),
+            )
+            .where(Task.id == task_id)
+        )
         return result.scalar_one_or_none()
 
     async def get_multi(
         self, db: AsyncSession, user_id: UUID, filters: TaskFilter
     ) -> list[Task]:
         """Get multiple tasks with filters."""
-        query = select(Task).where(Task.user_id == user_id)
+        query = (
+            select(Task)
+            .options(
+                selectinload(Task.source_item),
+                selectinload(Task.deadline).selectinload(Deadline.source_item),
+            )
+            .where(Task.user_id == user_id)
+        )
 
         if filters.status:
             query = query.where(Task.status == filters.status)
@@ -43,6 +59,10 @@ class TaskCRUD:
         """Get tasks by status."""
         result = await db.execute(
             select(Task)
+            .options(
+                selectinload(Task.source_item),
+                selectinload(Task.deadline).selectinload(Deadline.source_item),
+            )
             .where(and_(Task.user_id == user_id, Task.status == status))
             .order_by(Task.position.asc())
         )
@@ -65,8 +85,17 @@ class TaskCRUD:
         )
         db.add(task)
         await db.flush()
-        await db.refresh(task)
-        return task
+
+        # Re-fetch with relationships for source_platform property
+        result = await db.execute(
+            select(Task)
+            .options(
+                selectinload(Task.source_item),
+                selectinload(Task.deadline).selectinload(Deadline.source_item),
+            )
+            .where(Task.id == task.id)
+        )
+        return result.scalar_one()
 
     async def update(
         self, db: AsyncSession, task: Task, task_in: TaskUpdate
@@ -84,8 +113,17 @@ class TaskCRUD:
             setattr(task, field, value)
 
         await db.flush()
-        await db.refresh(task)
-        return task
+
+        # Re-fetch with relationships for source_platform property
+        result = await db.execute(
+            select(Task)
+            .options(
+                selectinload(Task.source_item),
+                selectinload(Task.deadline).selectinload(Deadline.source_item),
+            )
+            .where(Task.id == task.id)
+        )
+        return result.scalar_one()
 
     async def delete(self, db: AsyncSession, task: Task) -> None:
         """Delete a task."""

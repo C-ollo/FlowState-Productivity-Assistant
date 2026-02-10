@@ -63,6 +63,7 @@ export interface Deadline {
   due_at: string;
   source_text?: string;
   confidence: number;
+  priority_score?: number;
   status: DeadlineStatus;
   completed_at?: string;
   created_at: string;
@@ -80,6 +81,7 @@ export interface Task {
   completed_at?: string;
   position: number;
   ai_generated: boolean;
+  source_platform?: string;
   created_at: string;
 }
 
@@ -128,6 +130,7 @@ export interface CreateTaskRequest {
   description?: string;
   priority?: TaskPriority;
   due_at?: string;
+  deadline_id?: string;
 }
 
 export interface UpdateTaskRequest {

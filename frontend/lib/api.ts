@@ -158,6 +158,11 @@ class ApiClient {
     return response.data;
   }
 
+  async getNextEvent(): Promise<Item | null> {
+    const response = await this.client.get<Item | null>("/api/v1/inbox/next-event");
+    return response.data;
+  }
+
   async processAllItemsAI(): Promise<{ status: string; processed: number; total: number; errors?: any[] }> {
     const response = await this.client.post<{ status: string; processed: number; total: number; errors?: any[] }>(
       "/api/v1/inbox/process-all"

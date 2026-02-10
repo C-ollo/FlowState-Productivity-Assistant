@@ -45,6 +45,7 @@ class TaskRead(TaskBase):
     status: TaskStatus
     position: int
     ai_generated: bool
+    source_platform: str | None = None
     completed_at: datetime | None
     created_at: datetime
     updated_at: datetime

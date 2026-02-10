@@ -79,6 +79,14 @@ export function useProcessItemAI() {
   });
 }
 
+export function useNextEvent() {
+  return useQuery({
+    queryKey: ["inbox", "next-event"],
+    queryFn: () => api.getNextEvent(),
+    refetchInterval: 60000, // refresh every minute for countdown accuracy
+  });
+}
+
 export function useProcessAllItemsAI() {
   const queryClient = useQueryClient();
 

@@ -94,6 +94,15 @@ class Task(Base):
     deadline: Mapped["Deadline | None"] = relationship(
         "Deadline", back_populates="tasks"
     )
+
+    @property
+    def source_platform(self) -> str | None:
+        """Get the platform from the linked item, or via the linked deadline's item."""
+        if self.source_item is not None:
+            return self.source_item.platform.value if self.source_item.platform else None
+        if self.deadline is not None and self.deadline.source_item is not None:
+            return self.deadline.source_item.platform.value if self.deadline.source_item.platform else None
+        return None
     reminders: Mapped[list["Reminder"]] = relationship(
         "Reminder", back_populates="task", cascade="all, delete-orphan"
     )

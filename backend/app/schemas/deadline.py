@@ -41,6 +41,7 @@ class DeadlineRead(DeadlineBase):
     item_id: UUID | None
     source_text: str | None
     confidence: float
+    priority_score: int | None = None
     status: DeadlineStatus
     completed_at: datetime | None
     created_at: datetime
