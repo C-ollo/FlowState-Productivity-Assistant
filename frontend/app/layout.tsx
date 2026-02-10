@@ -3,7 +3,7 @@ import "./globals.css";
 import { QueryProvider } from "@/lib/query-provider";
 
 export const metadata: Metadata = {
-  title: "Productivity OS",
+  title: "FlowState",
   description: "Local-first AI-powered personal assistant",
 };
 

@@ -37,17 +37,17 @@ function getPlatformStyle(platform: string): { icon: string; bg: string } {
   }
 }
 
-function getPriorityBadge(item: Item): { label: string; color: string } | null {
-  if (item.priority_score >= 80) {
-    return { label: "HIGH PRIORITY", color: "bg-red-500/10 text-red-400" };
+function getPriorityFlag(score: number): { label: string; flagColor: string; badgeColor: string } {
+  if (score >= 80) {
+    return { label: "High", flagColor: "text-red-400", badgeColor: "bg-red-500/10 text-red-400" };
   }
-  if (item.priority_score >= 60) {
-    return { label: "ACTION NEEDED", color: "bg-orange-500/10 text-orange-400" };
+  if (score >= 60) {
+    return { label: "Medium", flagColor: "text-orange-400", badgeColor: "bg-orange-500/10 text-orange-400" };
   }
-  if (item.action_type === "fyi_only" || item.priority_score < 30) {
-    return { label: "FYI", color: "bg-slate-500/10 text-slate-400" };
+  if (score >= 40) {
+    return { label: "Normal", flagColor: "text-blue-400", badgeColor: "bg-blue-500/10 text-blue-400" };
   }
-  return null;
+  return { label: "Low", flagColor: "text-slate-500", badgeColor: "bg-slate-500/10 text-slate-400" };
 }
 
 function getActionLabel(actionType: string): string | null {
@@ -128,10 +128,12 @@ export default function DashboardPage() {
     .sort((a: Item, b: Item) => b.priority_score - a.priority_score)
     .slice(0, 3);
 
-  const filteredItems = recentItems.filter((item: Item) => {
-    if (activeSource === "All Sources") return true;
-    return item.platform === activeSource.toLowerCase();
-  });
+  const filteredItems = recentItems
+    .filter((item: Item) => {
+      if (activeSource === "All Sources") return true;
+      return item.platform === activeSource.toLowerCase();
+    })
+    .sort((a: Item, b: Item) => b.priority_score - a.priority_score);
 
   function getGreeting() {
     const hour = new Date().getHours();
@@ -387,7 +389,7 @@ export default function DashboardPage() {
             {filteredItems.length > 0 ? (
               filteredItems.map((item: Item) => {
                 const platform = getPlatformStyle(item.platform);
-                const priority = getPriorityBadge(item);
+                const priority = getPriorityFlag(item.priority_score);
                 const action = getActionLabel(item.action_type);
                 const displayName =
                   item.channel_name
@@ -410,16 +412,17 @@ export default function DashboardPage() {
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center justify-between mb-1">
                           <div className="flex items-center gap-2 min-w-0">
+                            <span className={`material-symbols-outlined text-sm shrink-0 ${priority.flagColor}`}>
+                              flag
+                            </span>
                             <h4 className="font-bold text-sm truncate">{displayName}</h4>
                             {!item.is_read && (
                               <span className="w-2 h-2 rounded-full bg-primary shrink-0"></span>
                             )}
-                            {priority && (
-                              <span className={`shrink-0 px-2 py-0.5 rounded text-[10px] font-bold ${priority.color}`}>
-                                {priority.label}
-                              </span>
-                            )}
-                            {action && !priority && (
+                            <span className={`shrink-0 px-2 py-0.5 rounded text-[10px] font-bold ${priority.badgeColor}`}>
+                              {priority.label}
+                            </span>
+                            {action && (
                               <span className="shrink-0 px-2 py-0.5 rounded text-[10px] font-bold bg-blue-500/10 text-blue-400">
                                 {action}
                               </span>

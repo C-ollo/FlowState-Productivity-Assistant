@@ -23,7 +23,7 @@ export default function LoginPage() {
           </div>
           <div className="flex flex-col">
             <h1 className="text-white text-xl font-bold leading-none">
-              Productivity OS
+              FlowState
             </h1>
             <p className="text-text-muted text-xs font-medium">Local-first AI</p>
           </div>
