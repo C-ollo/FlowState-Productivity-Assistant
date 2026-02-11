@@ -1,6 +1,7 @@
 "use client";
 
 import { useRef, useEffect, useState, KeyboardEvent } from "react";
+import ReactMarkdown from "react-markdown";
 import { useChat } from "@/hooks/use-chat";
 
 const SUGGESTIONS = [
@@ -100,26 +101,95 @@ export function AISidebar() {
                 key={msg.id}
                 className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}
               >
+                {msg.role === "assistant" && (
+                  <div className="w-5 h-5 rounded-full bg-primary/20 flex items-center justify-center mr-1.5 mt-0.5 shrink-0">
+                    <span className="material-symbols-outlined text-primary text-xs">
+                      auto_awesome
+                    </span>
+                  </div>
+                )}
                 <div
-                  className={`max-w-[85%] rounded-xl px-3 py-2 text-xs leading-relaxed ${
+                  className={`max-w-[80%] rounded-xl px-3 py-2 text-xs leading-relaxed ${
                     msg.role === "user"
                       ? "bg-primary text-white rounded-br-sm"
                       : "bg-surface-dark border border-border-dark text-white rounded-bl-sm"
                   }`}
                 >
-                  <div className="whitespace-pre-wrap break-words">
-                    {msg.content}
-                  </div>
+                  {msg.role === "assistant" ? (
+                    <div className="ai-chat-markdown break-words">
+                      <ReactMarkdown
+                        components={{
+                          p: ({ children }) => (
+                            <p className="mb-2 last:mb-0">{children}</p>
+                          ),
+                          strong: ({ children }) => (
+                            <strong className="font-semibold text-primary">
+                              {children}
+                            </strong>
+                          ),
+                          ul: ({ children }) => (
+                            <ul className="list-disc pl-3.5 mb-2 space-y-0.5 last:mb-0">
+                              {children}
+                            </ul>
+                          ),
+                          ol: ({ children }) => (
+                            <ol className="list-decimal pl-3.5 mb-2 space-y-0.5 last:mb-0">
+                              {children}
+                            </ol>
+                          ),
+                          li: ({ children }) => (
+                            <li className="text-text-muted">
+                              <span className="text-white">{children}</span>
+                            </li>
+                          ),
+                          h1: ({ children }) => (
+                            <h1 className="text-sm font-bold text-white mb-1.5 mt-2 first:mt-0">
+                              {children}
+                            </h1>
+                          ),
+                          h2: ({ children }) => (
+                            <h2 className="text-xs font-bold text-white mb-1 mt-2 first:mt-0">
+                              {children}
+                            </h2>
+                          ),
+                          h3: ({ children }) => (
+                            <h3 className="text-xs font-semibold text-white mb-1 mt-1.5 first:mt-0">
+                              {children}
+                            </h3>
+                          ),
+                          code: ({ children }) => (
+                            <code className="bg-border-dark text-primary px-1 py-0.5 rounded text-[10px]">
+                              {children}
+                            </code>
+                          ),
+                          hr: () => (
+                            <hr className="border-border-dark my-2" />
+                          ),
+                        }}
+                      >
+                        {msg.content}
+                      </ReactMarkdown>
+                    </div>
+                  ) : (
+                    <div className="whitespace-pre-wrap break-words">
+                      {msg.content}
+                    </div>
+                  )}
                 </div>
               </div>
             ))}
             {isLoading && (
               <div className="flex justify-start">
-                <div className="bg-surface-dark border border-border-dark rounded-xl rounded-bl-sm px-3 py-2">
-                  <div className="flex items-center gap-1">
-                    <div className="w-1.5 h-1.5 bg-text-muted rounded-full animate-bounce [animation-delay:-0.3s]" />
-                    <div className="w-1.5 h-1.5 bg-text-muted rounded-full animate-bounce [animation-delay:-0.15s]" />
-                    <div className="w-1.5 h-1.5 bg-text-muted rounded-full animate-bounce" />
+                <div className="w-5 h-5 rounded-full bg-primary/20 flex items-center justify-center mr-1.5 mt-0.5 shrink-0">
+                  <span className="material-symbols-outlined text-primary text-xs">
+                    auto_awesome
+                  </span>
+                </div>
+                <div className="bg-surface-dark border border-border-dark rounded-xl rounded-bl-sm px-3 py-3">
+                  <div className="flex items-center gap-1.5">
+                    <div className="w-1.5 h-1.5 bg-primary/60 rounded-full animate-bounce [animation-delay:-0.3s]" />
+                    <div className="w-1.5 h-1.5 bg-primary/60 rounded-full animate-bounce [animation-delay:-0.15s]" />
+                    <div className="w-1.5 h-1.5 bg-primary/60 rounded-full animate-bounce" />
                   </div>
                 </div>
               </div>
