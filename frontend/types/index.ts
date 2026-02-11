@@ -159,6 +159,24 @@ export interface UpdateItemRequest {
   is_starred?: boolean;
 }
 
+// Chat
+export interface ChatMessage {
+  id: string;
+  role: "user" | "assistant";
+  content: string;
+  timestamp: string;
+}
+
+export interface ChatRequest {
+  message: string;
+  conversation_id?: string;
+}
+
+export interface ChatResponse {
+  response: string;
+  conversation_id: string;
+}
+
 // Pagination
 export interface PaginatedResponse<T> {
   items: T[];

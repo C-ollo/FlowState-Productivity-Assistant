@@ -2,6 +2,8 @@ import axios, { AxiosError, AxiosInstance } from "axios";
 import {
   AuthResponse,
   Briefing,
+  ChatRequest,
+  ChatResponse,
   Connection,
   CreateDeadlineRequest,
   CreateTaskRequest,
@@ -295,6 +297,15 @@ class ApiClient {
   async generateBriefing(): Promise<Briefing> {
     const response = await this.client.post<Briefing>(
       "/api/v1/briefings/generate"
+    );
+    return response.data;
+  }
+
+  // Chat
+  async sendChatMessage(data: ChatRequest): Promise<ChatResponse> {
+    const response = await this.client.post<ChatResponse>(
+      "/api/v1/chat",
+      data
     );
     return response.data;
   }

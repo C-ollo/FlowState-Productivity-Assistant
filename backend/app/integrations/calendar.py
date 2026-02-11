@@ -16,6 +16,7 @@ CALENDAR_TOKEN_URL = "https://oauth2.googleapis.com/token"
 CALENDAR_API_BASE = "https://www.googleapis.com/calendar/v3"
 CALENDAR_SCOPES = [
     "https://www.googleapis.com/auth/calendar.readonly",
+    "https://www.googleapis.com/auth/calendar.events",
     "https://www.googleapis.com/auth/userinfo.email",
 ]
 
@@ -187,6 +188,46 @@ class CalendarIntegration(BaseIntegration):
 
             await db.flush()
             return items_synced
+
+    async def create_event(
+        self,
+        title: str,
+        start_time: str,
+        end_time: str,
+        description: str | None = None,
+        location: str | None = None,
+    ) -> dict:
+        """Create a Google Calendar event.
+
+        Args:
+            title: Event title/summary.
+            start_time: ISO 8601 start time (e.g. '2025-01-15T10:00:00').
+            end_time: ISO 8601 end time.
+            description: Optional event description.
+            location: Optional event location.
+
+        Returns:
+            The created event data from Google Calendar API.
+        """
+        event_body: dict = {
+            "summary": title,
+            "start": {"dateTime": start_time, "timeZone": "UTC"},
+            "end": {"dateTime": end_time, "timeZone": "UTC"},
+        }
+        if description:
+            event_body["description"] = description
+        if location:
+            event_body["location"] = location
+
+        async with httpx.AsyncClient() as client:
+            headers = {"Authorization": f"Bearer {self.connection.access_token}"}
+            response = await client.post(
+                f"{CALENDAR_API_BASE}/calendars/primary/events",
+                headers=headers,
+                json=event_body,
+            )
+            response.raise_for_status()
+            return response.json()
 
     def _parse_event(self, event: dict, user_id: UUID) -> Item | None:
         """Parse Google Calendar event into Item."""
