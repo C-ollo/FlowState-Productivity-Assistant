@@ -1,16 +1,20 @@
 @import "tailwindcss";
 
 @theme inline {
-  --color-primary: #0d59f2;
-  --color-background-light: #f5f6f8;
-  --color-background-dark: #101622;
-  --color-surface-dark: #1b1f27;
-  --color-border-dark: #282e39;
-  --color-text-muted: #9ca6ba;
-  --color-slack: #E01E5A;
+  --color-primary: #4343f4;
+  --color-primary-light: #6b6bff;
+  --color-primary-dark: #2a2abf;
+  --color-background-light: #f5f5f8;
+  --color-background-dark: #101022;
+  --color-surface-dark: #1a1a2e;
+  --color-surface-darker: #151528;
+  --color-border-dark: #1e293b;
+  --color-text-muted: #94a3b8;
+  --color-slack: #4A154B;
   --color-gmail: #EA4335;
   --color-calendar: #4285F4;
   --font-display: "Inter", sans-serif;
+  --shadow-glow: 0 0 20px -5px rgba(67, 67, 244, 0.3);
 }
 
 body {
@@ -21,6 +25,30 @@ body {
   font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
 }
 
+/* AI gradient border effect */
+.ai-border {
+  position: relative;
+}
+
+.ai-border::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  padding: 1px;
+  background: linear-gradient(135deg, rgba(67, 67, 244, 0.5), rgba(255, 255, 255, 0.1));
+  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  pointer-events: none;
+}
+
+.ai-gradient-text {
+  background: linear-gradient(135deg, #ffffff 0%, #a5a5ff 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
 /* Custom scrollbar */
 ::-webkit-scrollbar {
   width: 6px;
@@ -28,16 +56,16 @@ body {
 }
 
 ::-webkit-scrollbar-track {
-  background: #101622;
+  background: #101022;
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #282e39;
+  background: #2d2d42;
   border-radius: 3px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: #3a4358;
+  background: #4343f4;
 }
 
 /* Visible thin scrollbar for kanban/horizontal scroll areas */

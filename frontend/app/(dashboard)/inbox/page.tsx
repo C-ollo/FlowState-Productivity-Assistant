@@ -107,25 +107,25 @@ export default function InboxPage() {
             <div className="bg-surface-dark rounded-xl border border-border-dark p-5">
               <p className="text-sm text-primary mb-1">Total Items</p>
               <p className="text-2xl font-bold text-white">
-                {stats?.total || items.length}
+                {items.length}
               </p>
             </div>
             <div className="bg-surface-dark rounded-xl border border-border-dark p-5">
               <p className="text-sm text-primary mb-1">Unread</p>
               <p className="text-2xl font-bold text-amber-400">
-                {stats?.unread || 0}
+                {stats?.unread_count || 0}
               </p>
             </div>
             <div className="bg-surface-dark rounded-xl border border-border-dark p-5">
               <p className="text-sm text-primary mb-1">Action Required</p>
               <p className="text-2xl font-bold text-red-400">
-                {stats?.action_required || 0}
+                {stats?.action_required_count || 0}
               </p>
             </div>
             <div className="bg-surface-dark rounded-xl border border-border-dark p-5">
               <p className="text-sm text-primary mb-1">From Gmail</p>
               <p className="text-2xl font-bold text-white">
-                {stats?.by_platform?.gmail || items.length}
+                {items.filter(i => i.platform === "gmail").length}
               </p>
             </div>
           </div>
@@ -226,16 +226,16 @@ export default function InboxPage() {
                         <span className="text-xs text-text-muted whitespace-nowrap">
                           {getTimeAgo(item.received_at)}
                         </span>
-                        {item.priority_score > 0 && (
-                          <span className={`text-[10px] px-2 py-0.5 rounded font-bold ${
-                            item.priority_score >= 70 ? "bg-red-500/10 text-red-400" :
-                            item.priority_score >= 50 ? "bg-amber-500/10 text-amber-400" :
-                            item.priority_score >= 30 ? "bg-blue-500/10 text-blue-400" :
-                            "bg-border-dark text-text-muted"
-                          }`}>
-                            P{item.priority_score}
-                          </span>
-                        )}
+                        <span className={`text-[10px] px-2 py-0.5 rounded font-bold ${
+                          item.priority_score >= 80 ? "bg-red-500/10 text-red-400 border border-red-500/20" :
+                          item.priority_score >= 60 ? "bg-amber-500/10 text-amber-400 border border-amber-500/20" :
+                          item.priority_score >= 40 ? "bg-blue-500/10 text-blue-400 border border-blue-500/20" :
+                          "bg-slate-800 text-slate-500 border border-slate-700"
+                        }`}>
+                          {item.priority_score >= 80 ? "High" :
+                           item.priority_score >= 60 ? "Medium" :
+                           item.priority_score >= 40 ? "Normal" : "Low"}
+                        </span>
                       </div>
                     </div>
                   </div>

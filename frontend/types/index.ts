@@ -48,11 +48,8 @@ export interface Item {
 }
 
 export interface InboxStats {
-  total: number;
-  unread: number;
-  action_required: number;
-  by_platform: Record<Platform, number>;
-  by_category: Record<Category, number>;
+  unread_count: number;
+  action_required_count: number;
 }
 
 export interface Deadline {

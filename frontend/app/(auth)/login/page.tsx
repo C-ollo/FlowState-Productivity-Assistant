@@ -18,15 +18,12 @@ export default function LoginPage() {
     <div className="min-h-screen flex items-center justify-center bg-background-dark">
       <div className="w-full max-w-md p-8">
         <div className="flex items-center gap-3 mb-8 justify-center">
-          <div className="bg-primary rounded-lg p-2 flex items-center justify-center">
-            <span className="material-symbols-outlined text-white">bolt</span>
+          <div className="w-10 h-10 rounded-xl bg-primary flex items-center justify-center shadow-glow">
+            <span className="material-symbols-outlined text-white">auto_awesome</span>
           </div>
-          <div className="flex flex-col">
-            <h1 className="text-white text-xl font-bold leading-none">
-              FlowState
-            </h1>
-            <p className="text-text-muted text-xs font-medium">Local-first AI</p>
-          </div>
+          <span className="font-bold text-xl tracking-tight text-white">
+            Flow<span className="text-primary">State</span>
+          </span>
         </div>
 
         <div className="bg-surface-dark rounded-xl border border-border-dark p-6">
