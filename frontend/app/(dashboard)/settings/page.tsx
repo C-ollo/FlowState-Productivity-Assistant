@@ -28,6 +28,13 @@ const platforms = [
     iconColor: "text-calendar",
     description: "Sync events and meeting invites",
   },
+  {
+    id: "zoom",
+    name: "Zoom",
+    icon: "videocam",
+    iconColor: "text-blue-400",
+    description: "Sync meeting transcripts and recordings",
+  },
 ];
 
 export default function SettingsPage() {

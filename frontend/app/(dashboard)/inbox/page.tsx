@@ -1,11 +1,13 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { useInboxItems, useInboxStats } from "@/hooks/use-items";
 import { useUser } from "@/hooks/use-auth";
 import { Item } from "@/types";
+import api from "@/lib/api";
 
-const sourceFilters = ["All Sources", "Gmail", "Slack", "Calendar"];
+const sourceFilters = ["All Sources", "Gmail", "Slack", "Calendar", "Zoom"];
 
 function getTimeAgo(date: string): string {
   const now = new Date();
@@ -29,6 +31,8 @@ function getPlatformIcon(platform: string): { icon: string; color: string; bg: s
       return { icon: "alternate_email", color: "text-slack", bg: "bg-[#E01E5A]/10" };
     case "calendar":
       return { icon: "calendar_month", color: "text-calendar", bg: "bg-[#4285F4]/10" };
+    case "zoom":
+      return { icon: "videocam", color: "text-blue-400", bg: "bg-blue-400/10" };
     default:
       return { icon: "inbox", color: "text-text-muted", bg: "bg-border-dark" };
   }
@@ -49,6 +53,9 @@ function getPriorityBadge(item: Item): { text: string; color: string } | null {
 
 export default function InboxPage() {
   const [activeFilter, setActiveFilter] = useState("All Sources");
+  const [isUploading, setIsUploading] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const queryClient = useQueryClient();
   const { data: user } = useUser();
 
   const platformFilter = activeFilter === "All Sources"
@@ -65,6 +72,23 @@ export default function InboxPage() {
 
   const items = itemsData?.items || [];
 
+  const handleTranscriptUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setIsUploading(true);
+    try {
+      await api.uploadTranscript(file);
+      queryClient.invalidateQueries({ queryKey: ["inbox"] });
+    } catch (err) {
+      console.error("Failed to upload transcript:", err);
+    } finally {
+      setIsUploading(false);
+      if (fileInputRef.current) {
+        fileInputRef.current.value = "";
+      }
+    }
+  };
+
   return (
     <>
       {/* Header Section */}
@@ -75,11 +99,39 @@ export default function InboxPage() {
           </span>
           <input
             className="w-full bg-border-dark border-none rounded-lg pl-10 pr-4 py-2 text-sm focus:ring-1 focus:ring-primary placeholder:text-text-muted"
-            placeholder="Search Gmail, Slack, or Calendar..."
+            placeholder="Search Gmail, Slack, Calendar, or Zoom..."
             type="text"
           />
         </div>
         <div className="flex items-center gap-4 ml-4">
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept=".vtt,.srt,.txt"
+            className="hidden"
+            onChange={handleTranscriptUpload}
+          />
+          <button
+            onClick={() => fileInputRef.current?.click()}
+            disabled={isUploading}
+            className="flex items-center gap-1.5 bg-primary text-white text-[11px] font-bold py-2 px-3 rounded-lg hover:bg-blue-600 transition-colors disabled:opacity-50"
+          >
+            {isUploading ? (
+              <>
+                <span className="material-symbols-outlined text-sm animate-spin">
+                  progress_activity
+                </span>
+                Uploading...
+              </>
+            ) : (
+              <>
+                <span className="material-symbols-outlined text-sm">
+                  upload_file
+                </span>
+                Upload Transcript
+              </>
+            )}
+          </button>
           <button className="p-2 bg-border-dark rounded-lg text-text-muted hover:text-white transition-colors">
             <span className="material-symbols-outlined">notifications</span>
           </button>

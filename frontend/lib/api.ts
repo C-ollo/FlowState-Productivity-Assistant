@@ -310,6 +310,21 @@ class ApiClient {
     return response.data;
   }
 
+  // Transcripts
+  async uploadTranscript(file: File, title?: string): Promise<Item> {
+    const formData = new FormData();
+    formData.append("file", file);
+    if (title) {
+      formData.append("title", title);
+    }
+    const response = await this.client.post<Item>(
+      "/api/v1/transcripts/upload",
+      formData,
+      { headers: { "Content-Type": "multipart/form-data" } }
+    );
+    return response.data;
+  }
+
   // Connections
   async getConnections(): Promise<Connection[]> {
     const response = await this.client.get<Connection[]>("/api/v1/connections");

@@ -74,6 +74,10 @@ class Settings(BaseSettings):
     # Google Calendar
     google_calendar_enabled: bool = True
 
+    # Zoom OAuth
+    zoom_client_id: str = ""
+    zoom_client_secret: str = ""
+
 
 @lru_cache
 def get_settings() -> Settings:

@@ -14,6 +14,7 @@ from app.schemas.connection import ConnectionRead
 from app.integrations.gmail import GmailIntegration
 from app.integrations.slack import SlackIntegration
 from app.integrations.calendar import CalendarIntegration
+from app.integrations.zoom import ZoomIntegration
 
 router = APIRouter()
 
@@ -27,6 +28,7 @@ def get_integration_class(platform: Platform):
         Platform.GMAIL: GmailIntegration,
         Platform.SLACK: SlackIntegration,
         Platform.CALENDAR: CalendarIntegration,
+        Platform.ZOOM: ZoomIntegration,
     }
     return mapping.get(platform)
 

@@ -1,6 +1,6 @@
 from fastapi import APIRouter
 
-from app.api.v1 import auth, inbox, deadlines, tasks, briefings, chat, connections
+from app.api.v1 import auth, inbox, deadlines, tasks, briefings, chat, connections, transcripts
 
 api_router = APIRouter()
 
@@ -11,3 +11,4 @@ api_router.include_router(tasks.router, prefix="/tasks", tags=["tasks"])
 api_router.include_router(briefings.router, prefix="/briefings", tags=["briefings"])
 api_router.include_router(chat.router, prefix="/chat", tags=["chat"])
 api_router.include_router(connections.router, prefix="/connections", tags=["connections"])
+api_router.include_router(transcripts.router, prefix="/transcripts", tags=["transcripts"])

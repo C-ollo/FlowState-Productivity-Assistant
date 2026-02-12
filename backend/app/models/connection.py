@@ -21,6 +21,7 @@ class Platform(str, enum.Enum):
     GMAIL = "gmail"
     SLACK = "slack"
     CALENDAR = "calendar"
+    ZOOM = "zoom"
 
 
 class ConnectionStatus(str, enum.Enum):

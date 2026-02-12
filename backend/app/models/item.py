@@ -24,6 +24,7 @@ class ItemType(str, enum.Enum):
     SLACK_DM = "slack_dm"
     CALENDAR_EVENT = "calendar_event"
     CALENDAR_INVITE = "calendar_invite"
+    MEETING_TRANSCRIPT = "meeting_transcript"
 
 
 class ActionType(str, enum.Enum):

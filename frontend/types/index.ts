@@ -1,7 +1,7 @@
 // API Types
 
-export type Platform = "gmail" | "slack" | "calendar";
-export type ItemType = "email" | "slack_message" | "slack_dm" | "calendar_event" | "calendar_invite";
+export type Platform = "gmail" | "slack" | "calendar" | "zoom";
+export type ItemType = "email" | "slack_message" | "slack_dm" | "calendar_event" | "calendar_invite" | "meeting_transcript";
 export type ActionType = "reply_needed" | "review_needed" | "meeting_request" | "fyi_only" | "task_assigned" | "none";
 export type Category = "work" | "personal" | "school" | "promotional" | "social" | "finance" | "other";
 export type DeadlineStatus = "pending" | "completed" | "overdue" | "cancelled";
