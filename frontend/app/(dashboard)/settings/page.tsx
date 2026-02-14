@@ -55,7 +55,7 @@ export default function SettingsPage() {
     setConnecting(platformId);
     try {
       const { url } = await api.getOAuthUrl(platformId);
-      window.location.href = url;
+      globalThis.location.assign(url);
     } catch (error) {
       console.error("Failed to get OAuth URL:", error);
       setConnecting(null);

@@ -1,50 +1,36 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { Suspense, useEffect, useMemo } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 
-export default function GmailCallbackPage() {
+function GmailCallbackContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const [status, setStatus] = useState<"loading" | "success" | "error">("loading");
-  const [message, setMessage] = useState("Connecting your Gmail account...");
+
+  const { status, message } = useMemo(() => {
+    const error = searchParams.get("error");
+    if (error) {
+      return { status: "error" as const, message: `Authorization failed: ${error}` };
+    }
+    const code = searchParams.get("code");
+    if (!code) {
+      return { status: "error" as const, message: "No authorization code received" };
+    }
+    return { status: "success" as const, message: "Gmail connected successfully!" };
+  }, [searchParams]);
 
   useEffect(() => {
-    const code = searchParams.get("code");
-    const error = searchParams.get("error");
-
-    if (error) {
-      setStatus("error");
-      setMessage(`Authorization failed: ${error}`);
-      return;
-    }
-
-    if (!code) {
-      setStatus("error");
-      setMessage("No authorization code received");
-      return;
-    }
-
-    // The backend handles the callback directly, so if we reach here
-    // it means the backend already processed it and redirected
-    // Just show success and redirect to settings
-    setStatus("success");
-    setMessage("Gmail connected successfully!");
-
-    setTimeout(() => {
+    if (status !== "success") return;
+    const timer = setTimeout(() => {
       router.push("/settings");
     }, 2000);
-  }, [searchParams, router]);
+    return () => clearTimeout(timer);
+  }, [status, router]);
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-background-dark">
       <div className="text-center">
         <div className="mb-6">
-          {status === "loading" && (
-            <span className="material-symbols-outlined text-5xl text-primary animate-spin">
-              progress_activity
-            </span>
-          )}
           {status === "success" && (
             <span className="material-symbols-outlined text-5xl text-green-400">
               check_circle
@@ -70,5 +56,21 @@ export default function GmailCallbackPage() {
         )}
       </div>
     </div>
+  );
+}
+
+export default function GmailCallbackPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="min-h-screen flex items-center justify-center bg-background-dark">
+          <span className="material-symbols-outlined text-5xl text-primary animate-spin">
+            progress_activity
+          </span>
+        </div>
+      }
+    >
+      <GmailCallbackContent />
+    </Suspense>
   );
 }

@@ -6,7 +6,7 @@ import { useUser } from "@/hooks/use-auth";
 import { useInboxStats } from "@/hooks/use-items";
 
 const navigation = [
-  { name: "Dashboard", href: "/", icon: "dashboard" },
+  { name: "Dashboard", href: "/dashboard", icon: "dashboard" },
   { name: "Inbox", href: "/inbox", icon: "inbox", showBadge: true },
   { name: "My Tasks", href: "/tasks", icon: "task_alt" },
   { name: "Deadlines", href: "/deadlines", icon: "calendar_month" },
@@ -35,9 +35,7 @@ export function Sidebar() {
       <nav className="flex-1 py-6 space-y-1 px-3">
         {navigation.map((item) => {
           const isActive =
-            item.href === "/"
-              ? pathname === "/"
-              : pathname === item.href || pathname.startsWith(item.href + "/");
+            pathname === item.href || pathname.startsWith(item.href + "/");
           return (
             <Link
               key={item.name}

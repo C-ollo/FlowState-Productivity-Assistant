@@ -165,8 +165,8 @@ class ApiClient {
     return response.data;
   }
 
-  async processAllItemsAI(): Promise<{ status: string; processed: number; total: number; errors?: any[] }> {
-    const response = await this.client.post<{ status: string; processed: number; total: number; errors?: any[] }>(
+  async processAllItemsAI(): Promise<{ status: string; processed: number; total: number; errors?: unknown[] }> {
+    const response = await this.client.post<{ status: string; processed: number; total: number; errors?: unknown[] }>(
       "/api/v1/inbox/process-all"
     );
     return response.data;

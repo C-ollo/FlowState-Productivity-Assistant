@@ -22,7 +22,7 @@ export function useLogin() {
     mutationFn: (data: LoginRequest) => api.login(data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["user"] });
-      router.push("/inbox");
+      router.push("/dashboard");
     },
   });
 }
@@ -35,7 +35,7 @@ export function useRegister() {
     mutationFn: (data: RegisterRequest) => api.register(data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["user"] });
-      router.push("/inbox");
+      router.push("/dashboard");
     },
   });
 }
