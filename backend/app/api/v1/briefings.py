@@ -64,5 +64,11 @@ async def generate_briefing(
     """Generate a new on-demand briefing."""
     from app.ai.briefing_generator import generate_daily_briefing
 
-    briefing = await generate_daily_briefing(db, user_id)
-    return briefing
+    try:
+        briefing = await generate_daily_briefing(db, user_id)
+        return briefing
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_502_BAD_GATEWAY,
+            detail=f"AI service error: {str(e)}",
+        )
